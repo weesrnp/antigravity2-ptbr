@@ -1,0 +1,14 @@
+scratch/
+AgentWork/
+_temp_asar/
+node_modules/
+.DS_Store
+
+# Tool-specific exclusions
+.reasonix/
+.codex/
+codex/
+.codegraph/
+
+# Proxy configuration & injection modules (local only)
+proxy_config/
