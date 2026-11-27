@@ -150,9 +150,7 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
     process.env.PATH = currentPaths.join(':');
 }
 
-// --tw 參數：使用繁體中文字典 (dicts_tw/)，否則使用預設簡體字典 (dicts/)
-const USE_TW = process.argv.includes('--tw');
-const DICTS_FOLDER = USE_TW ? 'dicts_tw' : 'dicts';
+const DICTS_FOLDER = 'dicts';
 const BRAND_TITLE_ALIASES = {
     english: 'english',
     en: 'english',
@@ -188,108 +186,6 @@ if (!BRAND_TITLE_ALIASES[rawBrandTitle]) {
     console.warn(`[警告] 未识别的 --brand-title 参数 "${rawBrandTitle}"，已回退为 english。`);
 }
 
-if (USE_TW) {
-    const logTranslations = {
-        "====== 正在安装 Antigravity 中文汉化 ======": "====== 正在安裝 Antigravity 繁體中文漢化 ======",
-        "====== 正在卸载中文汉化，恢复官方原版 ======": "====== 正在卸載中文漢化，恢復官方原版 ======",
-        "[1] 检测到 Antigravity 客户端正在运行，正在关闭以解除文件锁...": "[1] 偵測到 Antigravity 用戶端正在執行，正在關閉以解除檔案鎖...",
-        "[缓存] 已自动清理 ": "[快取] 已自動清理 ",
-        " 个应用缓存目录，避免新旧版本字节码冲突。": " 個應用程式快取目錄，避免新舊版本位元組碼衝突。",
-        "[签名] 已同步更新 macOS Info.plist 中的 ElectronAsarIntegrity 校验值。": "[簽名] 已同步更新 macOS Info.plist 中的 ElectronAsarIntegrity 校驗值。",
-        "[修改] 正在向 preload.js 注入汉化代码...": "[修改] 正在向 preload.js 注入漢化程式碼...",
-        "[修改] 注入成功！": "[修改] 注入成功！",
-        "[修改] 正在向 menu.js 注入菜单汉化代码...": "[修改] 正在向 menu.js 注入選單漢化程式碼...",
-        "[修改] 菜单汉化注入成功！": "[修改] 選單漢化注入成功！",
-        "[修改] 正在向 tray.js 注入任务栏菜单汉化...": "[修改] 正在向 tray.js 注入系統匣選單漢化...",
-        "[修改] 任务栏菜单汉化注入成功！": "[修改] 系統匣選單漢化注入成功！",
-        "[修改] 正在向 loadingOverlay.js 注入加载页汉化...": "[修改] 正在向 loadingOverlay.js 注入載入頁漢化...",
-        "[修改] 加载页汉化注入成功！": "[修改] 載入頁漢化注入成功！",
-        "[修改] 正在向 updater.js 注入更新弹窗汉化...": "[修改] 正在向 updater.js 注入更新彈出視窗漢化...",
-        "[修改] 更新弹窗汉化注入成功！": "[修改] 更新彈出視窗漢化注入成功！",
-        "[修改] 正在向 utils.js 注入伴生面板 (Sidecar) 汉化钩子...": "[修改] 正在向 utils.js 注入伴生面板 (Sidecar) 漢化掛鉤...",
-        "[修改] 伴生面板 (Sidecar) 汉化钩子注入成功！": "[修改] 伴生面板 (Sidecar) 漢化掛鉤注入成功！",
-        "[警告] 未能在 utils.js 中找到 Sidecar 钩子插入点。": "[警告] 未能在 utils.js 中找到 Sidecar 掛鉤插入點。",
-        "[打包] 正在使用原生引擎生成并校验汉化候选包...": "[打包] 正在使用原生引擎產生並校驗漢化候選包...",
-        "[√] Antigravity 2.0 汉化部署完成！": "[√] Antigravity 2.0 繁體中文化套用完成！",
-        "[!] 未找到备份文件 app.asar.bak，可能尚未安装过汉化或备份被删除。": "[!] 未找到備份檔案 app.asar.bak，可能尚未安裝過繁中化或備份已被刪除。",
-        "[还原] 正在用官方备份文件恢复...": "[還原] 正在使用官方備份檔案還原...",
-        "[权限] 检测到当前用户对 macOS 应用目录缺少写入权限，正在尝试请求管理员权限 (sudo) 重新运行...": "[權限] 偵測到目前使用者對 macOS 應用程式目錄缺少寫入權限，正在嘗試請求管理員權限 (sudo) 重新執行...",
-        "[权限] 当前用户对目标目录缺少写入权限，请右键以管理员身份运行安装脚本。": "[權限] 目前使用者對目標目錄缺少寫入權限，請按右鍵以系統管理員身分執行安裝指令碼。",
-        "[权限] macOS 已阻止写入应用目录：这是系统“App 管理”保护机制（TCC）拦截，仅靠 sudo 无法绕过。": "[權限] macOS 已阻止寫入應用程式目錄：這是系統「App 管理」保護機制（TCC）攔截，僅靠 sudo 無法繞過。",
-        "[权限] 请前往“系统设置 -> 隐私与安全性 -> App 管理”，为当前运行脚本的终端应用（Terminal / iTerm2 / Warp / VS Code 等）开启权限；若仍失败，再开启同一应用的“完全磁盘访问权限”。": "[權限] 請前往「系統設定 -> 隱私權與安全性 -> App 管理」，為目前執行指令碼的終端機應用程式（Terminal / iTerm2 / Warp / VS Code 等）開啟權限；若仍失敗，再開啟同一應用程式的「完全磁碟存取權限」。",
-        "[权限] 授权后请按 Cmd+Q 完全退出该终端并重新打开，再重新运行本脚本。": "[權限] 授權後請按 Cmd+Q 完全結束該終端機並重新開啟，再重新執行本指令碼。",
-        "[权限] 检测到当前用户对应用目录缺少写入权限，正在尝试请求管理员权限 (sudo) 重新运行...": "[權限] 偵測到目前使用者對應用程式目錄缺少寫入權限，正在嘗試請求管理員權限 (sudo) 重新執行...",
-        "[√] 官方 app.asar 已成功恢复！": "[√] 官方 app.asar 已成功還原！",
-        "[错误] --install-dir 缺少有效的路径参数！": "[錯誤] --install-dir 缺少有效的路徑參數！",
-        "[错误] --install-dir= 路径不能为空！": "[錯誤] --install-dir= 路徑不能為空！",
-        "[错误] --brand-title 缺少有效的参数值（支持 english / hidden / translated）！": "[錯誤] --brand-title 缺少有效的參數值（支援 english / hidden / translated）！",
-        "[错误] --brand-title= 参数值不能为空！": "[錯誤] --brand-title= 參數值不能為空！",
-        "[错误] 检测到当前 app.asar 已安装过汉化，但官方备份文件 app.asar.bak 丢失！为防止将已汉化文件误存为官方备份，已中止操作。请先恢复官方原版客户端后再安装。": "[錯誤] 偵測到目前 app.asar 已安裝過漢化，但官方備份檔案 app.asar.bak 遺失！為防止將已漢化檔案誤存為官方備份，已中止操作。請先還原官方原版用戶端後再安裝。",
-        "[错误] 管理员提权执行失败或用户取消了密码输入。": "[錯誤] 管理員提權執行失敗或使用者取消了密碼輸入。",
-        "[错误] 汉化未完成，未提交的候选包不会替换客户端: ": "[錯誤] 漢化未完成，未提交的候選封裝不會替換用戶端: ",
-        "[错误] 恢复备份失败: ": "[錯誤] 還原備份失敗: ",
-        "[提示] macOS 写入受限，请检查终端应用的“App 管理”与“完全磁盘访问权限”。": "[提示] macOS 寫入受限，請檢查終端機應用程式的「App 管理」與「完全磁碟存取權限」。",
-        "[提示] 临时目录已保留: ": "[提示] 暫存目錄已保留: ",
-        "[错误] 更新 macOS Info.plist 校验值失败，已中止签名: ": "[錯誤] 更新 macOS Info.plist 校驗值失敗，已中止簽名: ",
-        "[错误] 未能识别有效的 ElectronAsarIntegrity 格式，已中止签名。": "[錯誤] 未能識別有效的 ElectronAsarIntegrity 格式，已中止簽名。",
-        "[警告] 清理扩展属性 (xattr) 失败: ": "[警告] 清除延伸屬性 (xattr) 失敗: ",
-        "[错误] 手动指定的路径不存在:": "[錯誤] 手動指定的路徑不存在:",
-        "[错误] 未在资源目录中找到 app.asar:": "[錯誤] 未在資源目錄中找到 app.asar:",
-        "[错误] 未能在 app.asar 中找到 dist/preload.js": "[錯誤] 未能在 app.asar 中找到 dist/preload.js",
-        "[错误] 无法定位有效的资源(resources)目录: ": "[錯誤] 無法定位有效的資源(resources)目錄: ",
-        "[警告] 未能在 menu.js 中找到设定的插入点。": "[警告] 未能在 menu.js 中找到設定的插入點。",
-        "[警告] 未能在 tray.js 中找到 createTray 函数插入点。": "[警告] 未能在 tray.js 中找到 createTray 函式插入點。",
-        "[签名] 检测到 macOS 平台，正在对应用包进行本地 ad-hoc 深度重签名: ": "[簽名] 偵測到 macOS 平台，正在對應用程式包進行本機 ad-hoc 深度重新簽名: ",
-        "[签名] 重新签名成功！": "[簽名] 重新簽名成功！",
-        "[签名] 目标路径并非完整 macOS .app 应用包，已跳过重签名: ": "[簽名] 目標路徑並非完整 macOS .app 應用程式包，已跳過重新簽名: ",
-        "[警告] 保存汉化偏好配置失败: ": "[警告] 儲存漢化偏好設定失敗: ",
-        "[错误] 重新签名失败，已中止操作。详情:": "[錯誤] 重新簽名失敗，已中止操作。詳情:",
-        "[错误] 未能从路径 ": "[錯誤] 未能從路徑 ",
-        " 识别到有效的 .app 路径，无法完成 macOS 重签名。": " 識別到有效的 .app 路徑，無法完成 macOS 重新簽名。",
-        "[探测] 成功自动识别到 Antigravity 安装目录: ": "[偵測] 成功自動識別到 Antigravity 安裝目錄: ",
-        "[错误] 未找到默认安装目录，请使用 --install-dir 手动指定您的安装路径！": "[錯誤] 未找到預設安裝目錄，請使用 --install-dir 手動指定您的安裝路徑！",
-        "详情: ": "詳情: ",
-        "[跳过] 检测到 --no-kill 参数，跳过关闭 Antigravity 运行进程。": "[跳過] 偵測到 --no-kill 參數，跳過關閉 Antigravity 執行進程。",
-        "[启动] 检测到安装前反重力客户端处于开启状态，正在重新启动客户端...": "[啟動] 偵測到安裝前反重力用戶端處於開啟狀態，正在重新啟動用戶端...",
-        "[启动] 客户端启动成功！": "[啟動] 用戶端啟動成功！",
-        "[警告] 客户端启动失败: ": "[警告] 用戶端啟動失敗: ",
-        "[代理] 检测到 proxy_config 配置目录，正在注入代理模块...": "[代理] 偵測到 proxy_config 設定目錄，正在注入代理模組...",
-        "[代理] 代理模块注入成功: ": "[代理] 代理模組注入成功: ",
-        "[代理] 已保留代理文件（无法确认其归属，请按需手动处理）: ": "[代理] 已保留代理檔案（無法確認其歸屬，請按需手動處理）: ",
-        "[代理警告] 注入文件 ": "[代理警告] 注入檔案 ",
-        " 失败: ": " 失敗: ",
-        "[警告] 未能在 tray.js 中命中任何任务栏注入点。": "[警告] 未能在 tray.js 中命中任何系統匣注入點。",
-        "[警告] 未能在 loadingOverlay.js 中找到加载页文本插入点。": "[警告] 未能在 loadingOverlay.js 中找到載入頁文字插入點。",
-        "[警告] 未能在 updater.js 中找到更新弹窗插入点。": "[警告] 未能在 updater.js 中找到更新彈出視窗插入點。",
-        "[错误] 目标目录不可写，汉化已中止。": "[錯誤] 目標目錄不可寫入，漢化已中止。",
-        "[1/2] 正在注入汉化...": "[1/2] 正在注入繁體中文化...",
-        "[2/2] 注入完成！": "[2/2] 注入完成！",
-        "提示：汉化已成功安装。": "提示：繁體中文漢化已成功套用。",
-        "窗口将在 5 秒后自动关闭...": "視窗將在 5 秒後自動關閉...",
-        "[×] 注入失败，请检查上方错误信息。": "[×] 注入失敗，請檢查上方錯誤訊息。"
-    };
-    const translateMsg = (args) => {
-        return args.map(arg => {
-            if (typeof arg === 'string') {
-                let res = arg;
-                for (const [k, v] of Object.entries(logTranslations)) {
-                    if (res.includes(k)) {
-                        res = res.split(k).join(v);
-                    }
-                }
-                return res;
-            }
-            return arg;
-        });
-    };
-    const origLog = console.log;
-    const origError = console.error;
-    const origWarn = console.warn;
-    console.log = (...args) => origLog(...translateMsg(args));
-    console.error = (...args) => origError(...translateMsg(args));
-    console.warn = (...args) => origWarn(...translateMsg(args));
-}
-
 const SIGNATURE_START = "/* --- ANTIGRAVITY CHINESE LOCALIZATION START --- */";
 const SIGNATURE_END = "/* --- ANTIGRAVITY CHINESE LOCALIZATION END --- */";
 
@@ -304,9 +200,11 @@ function normalizeText(text) {
                .replace(/…/g, '...');
 }
 
-function loadDictionary({ useTw = USE_TW, brandTitle = BRAND_TITLE_MODE } = {}) {
+function loadDictionary({
+    brandTitle = BRAND_TITLE_MODE
+} = {}) {
     const totalMap = {};
-    const dictsDir = path.join(__dirname, useTw ? 'dicts_tw' : 'dicts');
+    const dictsDir = path.join(__dirname, 'dicts');
     if (!fs.existsSync(dictsDir)) {
         throw new Error(`词典目录不存在: ${dictsDir}`);
     }
@@ -336,15 +234,15 @@ function loadDictionary({ useTw = USE_TW, brandTitle = BRAND_TITLE_MODE } = {}) 
 }
 
 function generateJs(options = {}) {
-    const useTw = options.useTw !== undefined ? Boolean(options.useTw) : USE_TW;
     const brandTitle = options.brandTitle !== undefined ? String(options.brandTitle) : BRAND_TITLE_MODE;
-    const fullDict = loadDictionary({ useTw, brandTitle });
+    const fullDict = loadDictionary({
+        brandTitle
+    });
     const dictJson = JSON.stringify(fullDict);
     const runtimePath = path.join(__dirname, 'src', 'preload_runtime.js');
     const runtimeTemplate = fs.readFileSync(runtimePath, 'utf-8');
 
     const body = runtimeTemplate
-        .replace('__USE_TW_PLACEHOLDER__', () => (useTw ? 'true' : 'false'))
         .replace('DICT_PLACEHOLDER', () => dictJson);
 
     return `${SIGNATURE_START}\n${body}\n${SIGNATURE_END}`;
@@ -993,11 +891,11 @@ function install20(resourcesDir, noKill = false) {
         const modifierMap = new Map([
             ['dist/preload.js', content => patchPreloadJs(content, translationJs, SIGNATURE_START, SIGNATURE_END)],
             ['dist/utils.js', content => patchUtilsJs(content, SIGNATURE_START, SIGNATURE_END)],
-            ['dist/menu.js', content => patchMenuJs(content, USE_TW)],
-            ['dist/tray.js', content => patchTrayJs(content, USE_TW)],
-            ['dist/loadingOverlay.js', content => patchLoadingOverlayJs(content, USE_TW)],
-            ['dist/updater.js', content => patchUpdaterJs(content, USE_TW)],
-            ...MAIN_PROCESS_PATCH_TARGETS.map(relPath => [relPath, content => patchMainProcessModule(relPath, content, USE_TW)])
+            ['dist/menu.js', content => patchMenuJs(content)],
+            ['dist/tray.js', content => patchTrayJs(content)],
+            ['dist/loadingOverlay.js', content => patchLoadingOverlayJs(content)],
+            ['dist/updater.js', content => patchUpdaterJs(content)],
+            ...MAIN_PROCESS_PATCH_TARGETS.map(relPath => [relPath, content => patchMainProcessModule(relPath, content)])
         ]);
 
         console.log(`[打包] 正在使用原生引擎生成并校验汉化候选包...`);
@@ -1128,70 +1026,6 @@ function restore20(resourcesDir, noKill = false) {
     return true;
 }
 
-// ==========================================
-// 代理模块管理 (Windows 平台可选注入)
-// ==========================================
-function injectProxyIfNeeded(installDir) {
-    if (process.platform !== 'win32') return;
-    const proxyConfigDir = path.join(__dirname, 'proxy_config');
-    if (!fs.existsSync(proxyConfigDir)) return;
-
-    let files = [];
-    try {
-        files = fs.readdirSync(proxyConfigDir).filter(f => {
-            const fullPath = path.join(proxyConfigDir, f);
-            return fs.statSync(fullPath).isFile();
-        });
-    } catch (e) {
-        return;
-    }
-
-    if (files.length === 0) return;
-
-    console.log(`\n[代理] 检测到 proxy_config 配置目录，正在注入代理模块...`);
-    const injectedFiles = [];
-    for (const file of files) {
-        const src = path.join(proxyConfigDir, file);
-        const dest = path.join(installDir, file);
-        try {
-            fs.copyFileSync(src, dest);
-            injectedFiles.push(file);
-        } catch (e) {
-            console.warn(`[代理警告] 注入文件 ${file} 失败: ${e.message}`);
-        }
-    }
-
-    if (injectedFiles.length > 0) {
-        console.log(`[代理] 代理模块注入成功: ${injectedFiles.join(', ')}`);
-    }
-}
-
-function restoreProxyIfNeeded(installDir) {
-    if (process.platform !== 'win32') return;
-    const proxyFiles = ['version.dll', 'dbghelp.dll', 'config.json'];
-    const proxyConfigDir = path.join(__dirname, 'proxy_config');
-    if (fs.existsSync(proxyConfigDir)) {
-        try {
-            const files = fs.readdirSync(proxyConfigDir);
-            for (const f of files) {
-                if (!proxyFiles.includes(f)) proxyFiles.push(f);
-            }
-        } catch (e) {}
-    }
-
-    const retainedFiles = [];
-    for (const file of proxyFiles) {
-        const dest = path.join(installDir, file);
-        if (fs.existsSync(dest)) {
-            retainedFiles.push(file);
-        }
-    }
-
-    if (retainedFiles.length > 0) {
-        console.log(`[代理] 已保留代理文件（无法确认其归属，请按需手动处理）: ${retainedFiles.join(', ')}`);
-    }
-}
-
 function getPrefsFilePath() {
     const baseDir = process.platform === 'win32'
         ? (process.env.APPDATA || process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Roaming'))
@@ -1213,7 +1047,6 @@ function saveLocalizationPref(installDir, pref) {
         }
         const key = path.resolve(installDir).toLowerCase();
         data[key] = {
-            useTw: Boolean(pref.useTw),
             brandTitle: String(pref.brandTitle || 'english'),
             updatedAt: new Date().toISOString()
         };
@@ -1255,25 +1088,15 @@ function resolveBrandTitleChoice(choice) {
     return 'english';
 }
 
-function promptBrandTitleMode(useTw = USE_TW, { input = process.stdin, output = process.stdout, log = console.log } = {}) {
-    const promptLines = useTw
-        ? [
-            '',
-            '請選擇左上角品牌顯示方式：',
-            '[1] 保持英文 Antigravity（推薦）',
-            '[2] 隱藏品牌名稱',
-            '[3] 顯示繁體中文品牌名稱（反重力）'
-        ]
-        : [
+function promptBrandTitleMode({ input = process.stdin, output = process.stdout, log = console.log } = {}) {
+    const promptLines = [
             '',
             '请选择左上角品牌显示方式：',
             '[1] 保持英文 Antigravity（推荐）',
             '[2] 隐藏品牌名',
             '[3] 汉化为品牌名（反重力）'
         ];
-    const questionText = useTw
-        ? '請輸入選項 [1/2/3]（直接按 Enter 預設為 1）：'
-        : '请选择 [1/2/3] (直接按 Enter 默认为 1): ';
+    const questionText = '请选择 [1/2/3] (直接按 Enter 默认为 1): ';
 
     for (const line of promptLines) {
         log(line);
@@ -1307,15 +1130,11 @@ function checkSupportedNodeVersion() {
     var parts = String((typeof process !== 'undefined' && process.versions && process.versions.node) || '0.0.0').split('.');
     var major = parseInt(parts[0], 10) || 0;
     if (major < 16) {
-        console.error(USE_TW
-            ? '[錯誤] 目前 Node.js 版本過舊 (' + process.versions.node + ')，無法相容 Antigravity 2.x 現代語法或安裝引擎需求。請安裝 Node.js 18 LTS 以上版本，並確認終端機 PATH 優先指向新版 node。'
-            : '[错误] 当前 Node.js 版本过低 (' + process.versions.node + ')，无法兼容 Antigravity 2.x 现代语法或安装引擎需求。请安装 Node.js 18 LTS 及以上版本，并确认终端 PATH 优先指向新版 node。');
+        console.error('[错误] 当前 Node.js 版本过低 (' + process.versions.node + ')，无法兼容 Antigravity 2.x 现代语法或安装引擎需求。请安装 Node.js 18 LTS 及以上版本，并确认终端 PATH 优先指向新版 node。');
         return false;
     }
     if (major < 18) {
-        console.warn(USE_TW
-            ? '[警告] 偵測到 Node.js 版本為 ' + process.versions.node + '（建議使用 18 LTS 以上版本以獲得完整相容性）。'
-            : '[警告] 检测到 Node.js 版本为 ' + process.versions.node + '（建议使用 18 LTS 及以上版本以获得完整兼容性）。');
+        console.warn('[警告] 检测到 Node.js 版本为 ' + process.versions.node + '（建议使用 18 LTS 及以上版本以获得完整兼容性）。');
     }
     return true;
 }
@@ -1372,7 +1191,7 @@ async function main() {
 
     const hasExplicitBrandTitle = args.some(a => a === '--brand-title' || a.startsWith('--brand-title='));
     if (interactive && !huifu && !hasExplicitBrandTitle) {
-        BRAND_TITLE_MODE = await promptBrandTitleMode(USE_TW);
+        BRAND_TITLE_MODE = await promptBrandTitleMode();
     }
     if (interactive && !huifu) {
         console.log('\n[1/2] 正在注入汉化...');
@@ -1421,15 +1240,13 @@ async function main() {
     if (huifu) {
         console.log("====== 正在卸载中文汉化，恢复官方原版 ======");
         success = restore20(resourcesDir, noKill);
-        if (success) {
-            restoreProxyIfNeeded(installDir);
-        }
     } else {
         console.log("====== 正在安装 Antigravity 中文汉化 ======");
         success = install20(resourcesDir, noKill);
         if (success) {
-            saveLocalizationPref(installDir, { useTw: USE_TW, brandTitle: BRAND_TITLE_MODE });
-            injectProxyIfNeeded(installDir);
+            saveLocalizationPref(installDir, {
+                brandTitle: BRAND_TITLE_MODE
+            });
         }
     }
 
