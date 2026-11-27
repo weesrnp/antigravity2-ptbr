@@ -1,18 +1,30 @@
+<p align="center">
+  <img src="assets/banner.jpg" alt="Antigravity 2 em português do Brasil" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D22.22.2-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/Electron-ASAR%20Patcher-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron" />
+  <img src="https://img.shields.io/badge/Idioma-pt--BR-009C3B?style=for-the-badge" alt="pt-BR" />
+  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-blue?style=for-the-badge" alt="Licença MIT" />
+</p>
+
 # Antigravity 2 em português do Brasil
 
-Tradução da interface do Antigravity 2 (editor de código com agentes de IA, do Google) para português do Brasil. Um script em Node.js, sem dependências, grava a tradução dentro do `resources/app.asar` do aplicativo. Antes disso ele guarda uma cópia do original (`app.asar.bak`), e você pode voltar ao inglês quando quiser.
+Tradução da interface do Antigravity 2 (editor de código com agentes de IA, do Google) para português do Brasil. Um script em Node.js, sem dependências externas, aplica a tradução diretamente no `resources/app.asar` do aplicativo. Antes de alterar qualquer coisa, ele salva uma cópia do arquivo original (`app.asar.bak`) para que você possa restaurar o inglês quando quiser.
 
-> **Projeto da comunidade, não oficial.** Não tem ligação com o Google. Esta é a versão pt-BR de [qqxpee/antigravity2-cn](https://github.com/qqxpee/antigravity2-cn). O recurso de proxy e o chinês tradicional do original foram removidos.
+> **Projeto comunitário e não oficial.** Sem vínculo com o Google. Esta é a adaptação pt-BR do [qqxpee/antigravity2-cn](https://github.com/qqxpee/antigravity2-cn), sem o recurso de proxy nem o suporte ao chinês tradicional do projeto original.
 
-A base do tradutor é o Antigravity 2.35.1. No Windows, a aplicação da tradução e a restauração do pacote original foram verificadas em uma cópia do Antigravity 2.36.0.
+Baseado na versão 2.35.1 e testado no Windows com o Antigravity 2.36.0.
 
 ## Instalar
 
 Requisito: [Node.js](https://nodejs.org) (versão LTS).
 
-1. Baixe o projeto (botão **Code**, **Download ZIP**, e extraia) ou use `git clone`.
+1. Baixe o projeto (**Code** → **Download ZIP** e extraia) ou clone com `git clone`.
 2. Feche o Antigravity por completo.
-3. Execute o instalador do seu sistema:
+3. Rode o instalador do seu sistema:
 
 | Sistema | Instalar | Desinstalar |
 | :--- | :--- | :--- |
@@ -20,26 +32,26 @@ Requisito: [Node.js](https://nodejs.org) (versão LTS).
 | macOS (não testado nesta versão) | duplo clique em `Instalar-pt-BR.command` | duplo clique em `Desinstalar-pt-BR.command` |
 | Linux (não testado nesta versão) | `./install_linux.sh` | `./uninstall_linux.sh` |
 
-4. O instalador pergunta como mostrar a marca no canto superior esquerdo: mostrar `Antigravity` (padrão) ou não mostrar.
-5. Abra o Antigravity de novo.
+4. Durante a instalação, escolha se quer manter o nome `Antigravity` no canto superior esquerdo (padrão) ou ocultá-lo.
+5. Abra o Antigravity novamente.
 
-No macOS, se o sistema bloquear o arquivo, rode `chmod +x *.command` no Terminal ou use **Ajustes do Sistema, Privacidade e Segurança, Abrir mesmo assim**.
+No macOS, se o sistema bloquear a execução, rode `chmod +x *.command` no Terminal ou libere em **Ajustes do Sistema → Privacidade e Segurança → Abrir mesmo assim**.
 
 ## Depois de uma atualização automática (Windows)
 
-O Antigravity atualiza sozinho em segundo plano ao fechar e a atualização sobrescreve o `app.asar`, então a interface volta para o inglês. Para não precisar reinstalar a cada vez, abra o programa por `Iniciar-Antigravity.bat` (crie um atalho na Área de Trabalho). Antes de abrir, ele confere se a tradução ainda está lá e a reaplica se preciso. Se a reaplicação falhar, ele avisa em vez de abrir o app em inglês.
+O Antigravity atualiza em segundo plano ao fechar e sobrescreve o `app.asar`, fazendo a interface voltar para o inglês. Para não precisar reinstalar a cada atualização, abra o programa pelo `Iniciar-Antigravity.bat` (vale criar um atalho na Área de Trabalho). Antes de iniciar, ele verifica se a tradução continua aplicada e a reaplica quando necessário. Se algo falhar, ele exibe um aviso em vez de abrir o aplicativo em inglês.
 
-Se preferir, feche o Antigravity e rode `Instalar-pt-BR.bat` de novo.
+Se preferir fazer manualmente, feche o Antigravity e rode `Instalar-pt-BR.bat` outra vez.
 
 ## Dúvidas frequentes
 
-**Erro dizendo que falta o Node.js.** Instale o Node.js (LTS) em [nodejs.org](https://nodejs.org) e rode o instalador de novo.
+**Falta o Node.js.** Instale a versão LTS em [nodejs.org](https://nodejs.org) e execute o instalador novamente.
 
-**Erro de permissão.** No Windows, clique com o botão direito em `Instalar-pt-BR.bat` e escolha **Executar como administrador**. No macOS 13 ou mais novo, o aplicativo em `/Applications` é protegido pelo sistema: em **Ajustes do Sistema, Privacidade e Segurança, Gerenciamento de Apps**, libere o Terminal (ou o terminal que você usa), feche-o por completo e rode o instalador outra vez. Se ainda falhar, libere também **Acesso Total ao Disco**.
+**Erro de permissão.** No Windows, clique com o botão direito em `Instalar-pt-BR.bat` e escolha **Executar como administrador**. No macOS 13 ou superior, o aplicativo em `/Applications` tem proteção do sistema: em **Ajustes do Sistema → Privacidade e Segurança → Gerenciamento de Apps**, autorize o seu Terminal, feche-o por completo e rode o instalador de novo. Se o erro continuar, libere também **Acesso Total ao Disco**.
 
-**A interface voltou para o inglês.** Foi uma atualização do Antigravity. Veja a seção acima.
+**A interface voltou para o inglês.** O Antigravity foi atualizado em segundo plano. Use o `Iniciar-Antigravity.bat` ou rode o instalador outra vez.
 
-**Como voltar ao inglês.** Rode o desinstalador do seu sistema. Ele restaura o `app.asar` original.
+**Como voltar ao inglês.** Execute o desinstalador do seu sistema para restaurar o `app.asar` original.
 
 ## Corrigir ou sugerir uma tradução
 
