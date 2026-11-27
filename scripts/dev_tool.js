@@ -1,13 +1,13 @@
 /**
  * Antigravity Reverse-Engineering & Diagnostics Dev Tool
- * 统一多功能诊断开发套件
- * 
- * 用法:
- *   node scripts/dev_tool.js port                          # 查看当前 language_server 进程 PID、端口与 CSRF 令牌
- *   node scripts/dev_tool.js search <keyword>              # 在当前运行的 live main.js 中搜索关键字
- *   node scripts/dev_tool.js slice <pos> [len]             # 查看 live main.js 指定位置的代码片段
- *   node scripts/dev_tool.js dump-mcp [--update-baseline]  # 导出全量官方 MCP 目录，并与 Git 基准进行增量差分对比
- *   node scripts/dev_tool.js scan-ui [--update-baseline]   # 扫描全量界面与悬浮提示词条，并与版本基准及汉化词典进行 Diff 对比
+ * Conjunto unificado de ferramentas de diagnóstico e inspeção
+ *
+ * Uso:
+ *   node scripts/dev_tool.js port                          # Exibe PID, portas e token CSRF do processo language_server ativo
+ *   node scripts/dev_tool.js search <keyword>              # Pesquisa palavra-chave no main.js em execução
+ *   node scripts/dev_tool.js slice <pos> [len]             # Exibe trecho do main.js em execução na posição indicada
+ *   node scripts/dev_tool.js dump-mcp [--update-baseline]  # Exporta o catálogo oficial de MCP e compara com a base de referência
+ *   node scripts/dev_tool.js scan-ui [--update-baseline]   # Varre strings da interface e dicas, comparando com a base e os dicionários
  */
 
 const fs = require('fs');
@@ -41,7 +41,7 @@ function getLanguageServerCandidates() {
                     );
                     ports = netOut.trim().split(/\r?\n/).map(p => parseInt(p.trim(), 10)).filter(p => Number.isInteger(p) && p > 0);
                 } catch (portErr) {
-                    console.warn(`[!] 查询进程 ${pid} 监听端口失败: ${portErr.message}`);
+                    console.warn(`[!] Falha ao consultar portas de escuta do processo ${pid}: ${portErr.message}`);
                 }
                 candidates.push({ pid, csrfToken, ports, cmd });
             }
@@ -84,14 +84,14 @@ function getLanguageServerCandidates() {
                         } catch (_ssErr) {}
                     }
                     if (!fallbackOk) {
-                        console.warn(`[!] 查询进程 ${pid} 监听端口失败: ${portErr.message}`);
+                        console.warn(`[!] Falha ao consultar portas de escuta do processo ${pid}: ${portErr.message}`);
                     }
                 }
                 candidates.push({ pid, csrfToken, ports, cmd });
             }
         }
     } catch (e) {
-        console.warn(`[!] 枚举 language_server 进程失败: ${e.message}`);
+        console.warn(`[!] Falha ao listar processos language_server: ${e.message}`);
     }
     return candidates;
 }
@@ -132,10 +132,10 @@ function fetchUrl(url, timeoutMs = 15000) {
             const chunks = [];
             res.on('data', c => chunks.push(c));
             res.on('error', reject);
-            res.on('aborted', () => reject(new Error(`响应中断 (${url})`)));
+            res.on('aborted', () => reject(new Error(`Resposta interrompida (${url})`)));
             res.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
         });
-        req.on('timeout', () => req.destroy(new Error(`请求超时 (${timeoutMs}ms): ${url}`)));
+        req.on('timeout', () => req.destroy(new Error(`Tempo limite excedido (${timeoutMs}ms): ${url}`)));
         req.on('error', reject);
     });
 }
@@ -155,20 +155,20 @@ function postJsonRpc(url, csrfToken, payload, timeoutMs = 8000) {
             const chunks = [];
             res.on('data', c => chunks.push(c));
             res.on('error', reject);
-            res.on('aborted', () => reject(new Error(`RPC 响应中断 (${url})`)));
+            res.on('aborted', () => reject(new Error(`Resposta RPC interrompida (${url})`)));
             res.on('end', () => {
                 const raw = Buffer.concat(chunks).toString('utf-8');
                 if (res.statusCode !== 200) {
-                    return reject(new Error(`RPC 返回 HTTP ${res.statusCode}: ${raw}`));
+                    return reject(new Error(`RPC retornou HTTP ${res.statusCode}: ${raw}`));
                 }
                 try {
                     resolve(JSON.parse(raw));
                 } catch (e) {
-                    reject(new Error(`RPC 响应 JSON 解析失败: ${e.message}`));
+                    reject(new Error(`Falha ao analisar JSON da resposta RPC: ${e.message}`));
                 }
             });
         });
-        req.on('timeout', () => req.destroy(new Error(`RPC 请求超时 (${timeoutMs}ms): ${url}`)));
+        req.on('timeout', () => req.destroy(new Error(`Tempo limite da requisição RPC excedido (${timeoutMs}ms): ${url}`)));
         req.on('error', reject);
         req.write(reqBody);
         req.end();
@@ -178,17 +178,17 @@ function postJsonRpc(url, csrfToken, payload, timeoutMs = 8000) {
 async function requireActiveServer({ requireCsrf = false } = {}) {
     const active = await findActiveLanguageServer();
     if (!active) {
-        console.error('[!] 未检测到正在运行的 language_server.exe。请先启动 Antigravity 客户端！');
+        console.error('[!] Processo language_server.exe em execução não detectado. Abra o Antigravity primeiro!');
         process.exitCode = 1;
         return null;
     }
     if (!active.httpsPort) {
-        console.error('[!] 无法探测到 language_server 的 HTTPS 端口。');
+        console.error('[!] Não foi possível detectar a porta HTTPS do language_server.');
         process.exitCode = 1;
         return null;
     }
     if (requireCsrf && !active.info.csrfToken) {
-        console.error('[!] 未能解析 CSRF Token');
+        console.error('[!] Não foi possível extrair o CSRF Token.');
         process.exitCode = 1;
         return null;
     }
@@ -205,7 +205,7 @@ function loadDictNormalizedKeys(dictsDir, { lowercase = false, strict = false } 
         try {
             const data = JSON.parse(fs.readFileSync(path.join(dictsDir, f), 'utf8'));
             if (!data || typeof data !== 'object' || Array.isArray(data)) {
-                throw new Error('词典根节点必须为 JSON 对象');
+                throw new Error('A raiz do dicionário deve ser um objeto JSON');
             }
             for (const k of Object.keys(data)) {
                 const nk = normalizeUiText(k);
@@ -213,7 +213,7 @@ function loadDictNormalizedKeys(dictsDir, { lowercase = false, strict = false } 
                 if (lowercase) lowerSet.add(nk.toLowerCase());
             }
         } catch (e) {
-            console.warn(`[!] 读取词典 ${f} 失败: ${e.message}`);
+            console.warn(`[!] Falha ao ler dicionário ${f}: ${e.message}`);
             hasError = true;
             if (strict) throw e;
         }
@@ -224,32 +224,32 @@ function loadDictNormalizedKeys(dictsDir, { lowercase = false, strict = false } 
 async function cmdPort() {
     const active = await findActiveLanguageServer();
     if (!active) {
-        console.error('[!] 未检测到正在运行的 language_server.exe 进程。');
+        console.error('[!] Nenhum processo language_server.exe em execução encontrado.');
         process.exitCode = 1;
         return;
     }
     const { info, httpsPort } = active;
-    console.log(`[+] 检测到 language_server.exe (PID: ${info.pid})`);
-    console.log(`[+] 监听端口列表: ${info.ports.join(', ')}`);
-    console.log(`[+] CSRF 令牌: ${info.csrfToken || '未找到'}`);
+    console.log(`[+] language_server.exe detectado (PID: ${info.pid})`);
+    console.log(`[+] Portas em escuta: ${info.ports.join(', ')}`);
+    console.log(`[+] Token CSRF: ${info.csrfToken || 'não encontrado'}`);
 
     if (httpsPort) {
-        console.log(`[+] Live Web/SPA 端口: https://127.0.0.1:${httpsPort}`);
+        console.log(`[+] Porta Web/SPA ativa: https://127.0.0.1:${httpsPort}`);
     } else {
-        console.log(`[-] 未能连接至任何 HTTPS Web 端口`);
+        console.log('[-] Não foi possível conectar a nenhuma porta HTTPS Web');
         process.exitCode = 1;
     }
 }
 
 async function cmdSearch(keyword, contextLen = 300) {
     if (!keyword) {
-        console.error('用法: node scripts/dev_tool.js search <keyword> [contextLen]');
+        console.error('Uso: node scripts/dev_tool.js search <keyword> [contextLen]');
         process.exitCode = 1;
         return;
     }
     const clen = Number(contextLen);
     if (!Number.isInteger(clen) || clen < 0) {
-        console.error(`用法: contextLen 必须为非负整数 (收到: ${contextLen})`);
+        console.error(`Uso: contextLen deve ser um inteiro não negativo (recebido: ${contextLen})`);
         process.exitCode = 1;
         return;
     }
@@ -257,29 +257,29 @@ async function cmdSearch(keyword, contextLen = 300) {
     if (!active) return;
     const { httpsPort } = active;
 
-    console.log(`[*] 正在从 https://127.0.0.1:${httpsPort}/main.js 下载并搜索: "${keyword}"...`);
+    console.log(`[*] Baixando e pesquisando "${keyword}" em https://127.0.0.1:${httpsPort}/main.js...`);
     const js = await fetchUrl(`https://127.0.0.1:${httpsPort}/main.js`);
-    console.log(`[*] main.js 大小: ${(js.length / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`[*] Tamanho de main.js: ${(js.length / 1024 / 1024).toFixed(2)} MB`);
 
     let matchCount = 0;
     let idx = 0;
     while ((idx = js.indexOf(keyword, idx)) !== -1) {
         matchCount++;
-        console.log(`\n=================== 匹配项 #${matchCount} (位置: ${idx}) ===================`);
+        console.log(`\n=================== Ocorrência #${matchCount} (posição: ${idx}) ===================`);
         const start = Math.max(0, idx - clen);
         const end = Math.min(js.length, idx + keyword.length + clen);
         console.log(js.slice(start, end));
         idx += keyword.length;
     }
 
-    console.log(`\n[*] 搜索完毕，共找到 ${matchCount} 处匹配。`);
+    console.log(`\n[*] Pesquisa concluída: ${matchCount} ${matchCount === 1 ? 'ocorrência encontrada' : 'ocorrências encontradas'}.`);
 }
 
 async function cmdSlice(startPos, length = 500) {
     const start = Number(startPos);
     const len = Number(length);
     if (!Number.isInteger(start) || start < 0 || !Number.isInteger(len) || len <= 0) {
-        console.error('用法: node scripts/dev_tool.js slice <startPos>=0 [length>0]');
+        console.error('Uso: node scripts/dev_tool.js slice <startPos>=0 [length>0]');
         process.exitCode = 1;
         return;
     }
@@ -296,34 +296,34 @@ async function cmdDumpMcp(args = []) {
     const { info, httpsPort } = active;
     const updateBaseline = args.includes('--update-baseline');
 
-    console.log(`[*] 正在通过 Connect-Web RPC 向 https://127.0.0.1:${httpsPort} 请求 MCP 目录...`);
+    console.log(`[*] Consultando catálogo MCP via Connect-Web RPC em https://127.0.0.1:${httpsPort}...`);
     const data = await postJsonRpc(
         `https://127.0.0.1:${httpsPort}/exa.language_server_pb.LanguageServerService/GetAvailableCascadePlugins`,
         info.csrfToken,
         { os: process.platform === 'win32' ? 'windows' : (process.platform === 'darwin' ? 'darwin' : 'linux'), searchQuery: '' }
     );
     if (!data || typeof data !== 'object' || !Array.isArray(data.plugins)) {
-        throw new Error('GetAvailableCascadePlugins 返回了非预期的响应结构');
+        throw new Error('GetAvailableCascadePlugins retornou uma estrutura de resposta inesperada');
     }
     const plugins = data.plugins;
 
-    console.log(`[√] 成功从客户端拉取到 ${plugins.length} 个官方 MCP 服务器！`);
+    console.log(`[OK] ${plugins.length} ${plugins.length === 1 ? 'servidor MCP oficial obtido' : 'servidores MCP oficiais obtidos'} do cliente!`);
 
-    // 1. 写入本地 scratch 缓存
+    // 1. Gravar cache local em scratch
     const scratchDir = path.join(__dirname, '..', 'scratch');
     fs.mkdirSync(scratchDir, { recursive: true });
     const outPath = path.join(scratchDir, 'mcp_catalog_official_raw.json');
     fs.writeFileSync(outPath, JSON.stringify(plugins, null, 2), 'utf-8');
-    console.log(`[√] 本地抓包缓存已更新: ${outPath}`);
+    console.log(`[OK] Cache local atualizado em: ${outPath}`);
 
-    // 2. 与 Git 追踪的基准文件 (scripts/mcp_catalog_baseline.json) 进行增量差分对比
+    // 2. Comparação incremental com o arquivo de referência (scripts/mcp_catalog_baseline.json)
     const baselinePath = path.join(__dirname, 'mcp_catalog_baseline.json');
     let baselineReadFailed = false;
     if (fs.existsSync(baselinePath)) {
         try {
             const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
             if (!Array.isArray(baseline)) {
-                throw new Error('mcp_catalog_baseline.json 必须为 JSON 数组');
+                throw new Error('mcp_catalog_baseline.json deve ser um array JSON');
             }
             const baselineIds = new Set(baseline.map(b => b.id));
             const pluginIds = new Set(plugins.map(p => p.id));
@@ -331,20 +331,20 @@ async function cmdDumpMcp(args = []) {
             const added = plugins.filter(p => !baselineIds.has(p.id));
             const removed = baseline.filter(b => !pluginIds.has(b.id));
 
-            console.log('\n------------------ 基准对比 (Diff 分析) ------------------');
-            console.log(`当前拉取数: ${plugins.length} | Git 基准数: ${baseline.length}`);
+            console.log('\n------------------ Comparação com a base (Diff) ------------------');
+            console.log(`Obtidos agora: ${plugins.length} | Na base: ${baseline.length}`);
 
             if (added.length === 0 && removed.length === 0) {
-                console.log('[√] 与 Git 追踪的基准文件完全一致，未发现任何增删变动！');
+                console.log('[OK] Totalmente alinhado com o arquivo de referência; nenhuma adição ou remoção encontrada!');
             } else {
                 if (added.length > 0) {
-                    console.log(`\n[+] 发现 ${added.length} 个新增 MCP 服务器:`);
+                    console.log(`\n[+] ${added.length} ${added.length === 1 ? 'novo servidor MCP encontrado' : 'novos servidores MCP encontrados'}:`);
                     for (const item of added) {
                         console.log(`    + [${item.id}] ${item.title}`);
                     }
                 }
                 if (removed.length > 0) {
-                    console.log(`\n[-] 发现 ${removed.length} 个已下线/移除 MCP 服务器:`);
+                    console.log(`\n[-] ${removed.length} ${removed.length === 1 ? 'servidor MCP removido' : 'servidores MCP removidos'}:`);
                     for (const item of removed) {
                         console.log(`    - [${item.id}] ${item.title}`);
                     }
@@ -357,18 +357,18 @@ async function cmdDumpMcp(args = []) {
                     added,
                     removed
                 }, null, 2), 'utf-8');
-                console.log(`[√] 增量差异清单已输出至: ${diffOutPath}`);
+                console.log(`[OK] Lista de diferenças salva em: ${diffOutPath}`);
             }
         } catch (e) {
             baselineReadFailed = true;
-            console.warn('[!] 读取基准文件对比失败:', e.message);
+            console.warn('[!] Falha ao ler/comparar arquivo de referência:', e.message);
             process.exitCode = 1;
         }
     } else {
-        console.log('[i] 未找到基准文件 scripts/mcp_catalog_baseline.json');
+        console.log('[i] Arquivo de referência scripts/mcp_catalog_baseline.json não encontrado.');
     }
 
-    // 3. 词典覆盖率检查（加载全部 dicts/*.json 并做归一化匹配）
+    // 3. Verificação de cobertura nos dicionários (carrega todos os dicts/*.json com normalização)
     const dictsDir = path.join(__dirname, '..', 'dicts');
     const dictResult = loadDictNormalizedKeys(dictsDir);
     if (dictResult.hasError) {
@@ -376,26 +376,26 @@ async function cmdDumpMcp(args = []) {
     }
     if (dictResult.exists) {
         const missing = plugins.filter(p => p.description && !dictResult.keySet.has(normalizeUiText(p.description)));
-        console.log('\n------------------ 词典汉化覆盖率检查 ------------------');
+        console.log('\n------------------ Cobertura de tradução nos dicionários ------------------');
         if (missing.length === 0) {
-            console.log(`[√] 完美！当前全量 ${plugins.length} 个 MCP 描述均已全部收录在中文词典中！`);
+            console.log(`[OK] Perfeito! Todas as ${plugins.length} descrições de MCP já constam nos dicionários pt-BR!`);
         } else {
-            console.log(`[!] 注意: 发现 ${missing.length} 项 MCP 描述尚未在词典中找到翻译:`);
+            console.log(`[!] Atenção: ${missing.length} ${missing.length === 1 ? 'descrição de MCP ainda sem tradução no dicionário' : 'descrições de MCP ainda sem tradução nos dicionários'}:`);
             for (const m of missing) {
                 console.log(`    * [${m.id}] ${m.title}`);
             }
         }
     }
 
-    // 4. 更新基准文件
+    // 4. Atualizar arquivo de referência
     if (updateBaseline) {
         if (baselineReadFailed || dictResult.hasError) {
-            throw new Error('检测到基准或词典读取异常，已中止 --update-baseline 以防损坏基准文件');
+            throw new Error('Erro detectado ao ler a base ou os dicionários; --update-baseline cancelado para evitar corromper a referência');
         }
         fs.writeFileSync(baselinePath, JSON.stringify(plugins, null, 2), 'utf-8');
-        console.log(`\n[√] 已将最新清册写入并更新 Git 基准文件: ${baselinePath}`);
+        console.log(`\n[OK] Lista atual gravada no arquivo de referência: ${baselinePath}`);
     } else {
-        console.log('\n提示: 如需将本次抓取的数据更新为新的 Git 基准，可加上参数: --update-baseline');
+        console.log('\nDica: para salvar os dados capturados como nova base de referência, adicione --update-baseline');
     }
 }
 
@@ -521,20 +521,20 @@ function extractUiStringsFromBundle(js) {
         }
     }
 
-    // 4. createElement 直接传递字符串子节点 (避免子节点包含括号如 "(invoked with /browser)" 时被 ceRegex 误截断)
+    // 4. Filho string direto de createElement (evita truncamento por parênteses como "(invoked with /browser)")
     const directCeRegex = /createElement\(\s*(?:[A-Za-z0-9_$.]+|"[a-z0-9-]+")\s*,\s*(?:null|void 0|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[A-Za-z0-9_$.]+)\s*,\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g;
     while ((m = directCeRegex.exec(js)) !== null) {
         addCandidate(m[1] ?? m[2], 'jsx:child');
     }
 
-    // 5. 条件属性单侧字符串匹配 (覆盖形如 description: cond ? "str" : createElement(...) 的非对称三元表达式)
+    // 5. Atributo condicional com string em apenas um ramo (ex.: description: cond ? "str" : createElement(...))
     const condPropSingleRegex = /(?:(?:"(aria-label|data-tooltip-content)")|\b(label|sublabel|title|placeholder|description|shortDescription|tooltip|tooltipText|tooltipContent|ariaLabel|heading|subheading|subtitle|header|content|message|detail))\s*:\s*[^,?{}]+?\?\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g;
     while ((m = condPropSingleRegex.exec(js)) !== null) {
         const prop = m[1] || m[2];
         addCandidate(m[3] ?? m[4], `condProp:${prop}`);
     }
 
-    // 6. 反引号模板字面量（属性与 createElement 直接子节点）
+    // 6. Template literals com crase (atributos e filhos diretos de createElement)
     const templatePropRegex = /(?:(?:"(aria-label|data-tooltip-content)")|\b(label|sublabel|title|placeholder|description|shortDescription|tooltip|tooltipText|tooltipContent|ariaLabel|emptyMessage|emptyText|errorMessage|helperText|confirmText|cancelText|buttonText|heading|subheading|subtitle|header|content|message|detail))\s*:\s*`((?:[^`\\]|\\.)*)`/g;
     while ((m = templatePropRegex.exec(js)) !== null) {
         const tpl = normalizeTemplateLiteral(m[3]);
@@ -566,14 +566,14 @@ async function cmdScanUi(args = []) {
         const verMatch = indexHtml.match(/"appVersion"\s*:\s*"([^"]+)"/);
         if (verMatch) appVersion = verMatch[1];
     } catch (e) {
-        console.warn(`[!] 获取客户端版本号失败: ${e.message}`);
+        console.warn(`[!] Falha ao obter a versão do cliente: ${e.message}`);
     }
 
-    console.log(`[*] 正在从客户端 (v${appVersion}) https://127.0.0.1:${httpsPort}/main.js 提取全量界面与悬浮提示词条...`);
+    console.log(`[*] Extraindo todas as strings de interface e dicas de https://127.0.0.1:${httpsPort}/main.js (v${appVersion})...`);
     const js = await fetchUrl(`https://127.0.0.1:${httpsPort}/main.js`);
     const extracted = extractUiStringsFromBundle(js);
 
-    // 同步通过 Connect-Web RPC 提取 Mendel 动态实验下发的 UI 文案 (如新手引导 Persona 卡片与免责声明)
+    // Extrai textos dinâmicos de UI enviados por experimentos Mendel via Connect-Web RPC (ex.: cartões de boas-vindas e avisos)
     if (info.csrfToken) {
         try {
             const mendelData = await postJsonRpc(
@@ -610,7 +610,7 @@ async function cmdScanUi(args = []) {
                     try {
                         walkJson(JSON.parse(trimmed), keyName);
                     } catch (jsonErr) {
-                        console.warn(`[!] 解析 Mendel 实验 ${keyName} JSON 失败: ${jsonErr.message}`);
+                        console.warn(`[!] Falha ao analisar JSON do experimento Mendel ${keyName}: ${jsonErr.message}`);
                     }
                 } else if (trimmed.includes(' ')) {
                     const s = normalizeUiText(trimmed);
@@ -621,10 +621,10 @@ async function cmdScanUi(args = []) {
                 }
             }
         } catch (e) {
-            console.warn(`[!] 拉取 Mendel 实验配置失败: ${e.message}`);
+            console.warn(`[!] Falha ao obter configuração de experimentos Mendel: ${e.message}`);
         }
 
-        // 同步通过 GetUserStatus / RetrieveUserQuotaSummary / GetSlashCommands RPC 提取后端下发动态词条与内置 `/` 斜杠命令描述
+        // Extrai strings dinâmicas do backend via RPC GetUserStatus / RetrieveUserQuotaSummary / GetSlashCommands e descrições dos comandos '/' embutidos
         let us = null;
         const recordRpcString = (rawText, source) => {
             const s = normalizeUiText(rawText || '');
@@ -640,7 +640,7 @@ async function cmdScanUi(args = []) {
             }
             recordRpcString(us?.userStatus?.userTier?.upgradeSubscriptionText, 'rpc:userStatus');
         } catch (e) {
-            console.warn(`[!] 拉取用户状态动态词条失败: ${e.message}`);
+            console.warn(`[!] Falha ao obter strings dinâmicas de status do usuário: ${e.message}`);
         }
 
         try {
@@ -653,7 +653,7 @@ async function cmdScanUi(args = []) {
                 }
             }
         } catch (e) {
-            console.warn(`[!] 拉取配额摘要动态词条失败: ${e.message}`);
+            console.warn(`[!] Falha ao obter strings dinâmicas do resumo de cota: ${e.message}`);
         }
 
         try {
@@ -672,14 +672,14 @@ async function cmdScanUi(args = []) {
                 recordRpcString(cmd.description, 'rpc:slashCommand');
             }
         } catch (e) {
-            console.warn(`[!] 拉取内置斜杠命令描述失败: ${e.message}`);
+            console.warn(`[!] Falha ao obter descrições de comandos de barra embutidos: ${e.message}`);
         }
     }
 
     const allStrings = [...extracted.keys()].sort();
-    console.log(`[√] 提取完成！共扫描到 ${allStrings.length} 条界面与悬浮提示词条。`);
+    console.log(`[OK] Extração concluída! ${allStrings.length} ${allStrings.length === 1 ? 'string de interface e dica encontrada' : 'strings de interface e dicas encontradas'}.`);
 
-    // 加载现有全量中文字典
+    // Carrega os dicionários pt-BR atuais
     const dictsDir = path.join(__dirname, '..', 'dicts');
     const dictResult = loadDictNormalizedKeys(dictsDir, { lowercase: true });
     if (dictResult.hasError) {
@@ -688,7 +688,7 @@ async function cmdScanUi(args = []) {
     const dictSet = dictResult.keySet;
     const dictLowerSet = dictResult.lowerSet;
 
-    // 与 Git 基准文件 (scripts/ui_strings_baseline.json) 对比
+    // Compara com o arquivo de referência (scripts/ui_strings_baseline.json)
     const baselinePath = path.join(__dirname, 'ui_strings_baseline.json');
     let addedStrings = allStrings;
     let baselineReadFailed = false;
@@ -696,11 +696,11 @@ async function cmdScanUi(args = []) {
         try {
             const baselineData = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
             if (!baselineData || typeof baselineData !== 'object') {
-                throw new Error('ui_strings_baseline.json 解析结果为空或非对象');
+                throw new Error('ui_strings_baseline.json resultou em valor vazio ou não objeto');
             }
             const baseList = Array.isArray(baselineData) ? baselineData : (Array.isArray(baselineData.strings) ? baselineData.strings : null);
             if (!baseList) {
-                throw new Error('ui_strings_baseline.json 缺少 strings 数组');
+                throw new Error('ui_strings_baseline.json não possui o array strings');
             }
             const baseSet = new Set(baseList);
             const curSet = new Set(allStrings);
@@ -708,48 +708,48 @@ async function cmdScanUi(args = []) {
             addedStrings = allStrings.filter(s => !baseSet.has(s));
             const removedStrings = baseList.filter(s => !curSet.has(s));
 
-            console.log('\n------------------ 版本升级增量对比 (UI Diff) ------------------');
-            console.log(`基准版本: v${baselineData.version || '未知'} (${baseList.length} 条) | 当前版本: v${appVersion} (${allStrings.length} 条)`);
+            console.log('\n------------------ Comparação incremental de versão (UI Diff) ------------------');
+            console.log(`Versão de referência: v${baselineData.version || 'desconhecida'} (${baseList.length}) | Versão atual: v${appVersion} (${allStrings.length})`);
             if (addedStrings.length === 0 && removedStrings.length === 0) {
-                console.log('[√] 与基准版本词条完全一致，本次未检测到任何界面词条变动！');
+                console.log('[OK] Totalmente igual à versão de referência; nenhuma mudança de strings de interface detectada!');
             } else {
-                console.log(`[+] 新增界面/悬浮提示词条: ${addedStrings.length} 条 | [-] 移除旧词条: ${removedStrings.length} 条`);
+                console.log(`[+] Adicionadas: ${addedStrings.length} | [-] Removidas: ${removedStrings.length}`);
             }
         } catch (e) {
             baselineReadFailed = true;
-            console.warn('[!] 读取 UI 基准文件失败:', e.message);
+            console.warn('[!] Falha ao ler arquivo de referência da UI:', e.message);
             process.exitCode = 1;
         }
     } else {
-        console.log('\n[i] 尚未建立 UI 词条基准文件 (scripts/ui_strings_baseline.json)。');
+        console.log('\n[i] Arquivo de referência de strings da UI ainda não criado (scripts/ui_strings_baseline.json).');
     }
 
-    // 检查新增词条中有多少尚未翻译
+    // Verifica quantas das novas strings ainda não estão traduzidas
     const untranslatedNew = addedStrings
         .filter(s => !dictSet.has(s) && !dictLowerSet.has(s.toLowerCase()))
         .map(s => ({ str: s, cats: [...(extracted.get(s) || [])].join(',') }));
 
-    console.log('\n------------------ 新增词条汉化覆盖检查 ------------------');
+    console.log('\n------------------ Cobertura de tradução das novas strings ------------------');
     if (untranslatedNew.length === 0) {
-        console.log('[√] 完美！所有新增界面与悬浮提示词条均已在中文词典中完成覆盖！');
+        console.log('[OK] Perfeito! Todas as novas strings de interface e dicas já estão cobertas pelos dicionários pt-BR!');
     } else {
-        console.log(`[!] 发现 ${untranslatedNew.length} 条新增未翻译词条:`);
+        console.log(`[!] ${untranslatedNew.length} ${untranslatedNew.length === 1 ? 'nova string sem tradução encontrada' : 'novas strings sem tradução encontradas'}:`);
         for (const item of untranslatedNew.slice(0, 40)) {
             console.log(`    * [${item.cats}] ${item.str}`);
         }
         if (untranslatedNew.length > 40) {
-            console.log(`    ... 以及另外 ${untranslatedNew.length - 40} 条（完整列表已保存至 scratch/untranslated_ui_diff.json）`);
+            console.log(`    ... e mais ${untranslatedNew.length - 40} (lista completa salva em scratch/untranslated_ui_diff.json)`);
         }
         const scratchDir = path.join(__dirname, '..', 'scratch');
         fs.mkdirSync(scratchDir, { recursive: true });
         const diffOutPath = path.join(scratchDir, 'untranslated_ui_diff.json');
         fs.writeFileSync(diffOutPath, JSON.stringify(untranslatedNew, null, 2), 'utf8');
-        console.log(`[√] 增量待翻译清单已输出至: ${diffOutPath}`);
+        console.log(`[OK] Lista incremental de pendentes salva em: ${diffOutPath}`);
     }
 
     if (updateBaseline) {
         if (baselineReadFailed || dictResult.hasError) {
-            throw new Error('检测到基准或词典读取异常，已中止 --update-baseline 以防损坏基准文件');
+            throw new Error('Erro detectado ao ler a base ou os dicionários; --update-baseline cancelado para evitar corromper a referência');
         }
         const payload = {
             version: appVersion,
@@ -758,9 +758,9 @@ async function cmdScanUi(args = []) {
             strings: allStrings
         };
         fs.writeFileSync(baselinePath, JSON.stringify(payload, null, 2), 'utf8');
-        console.log(`\n[√] 已将当前 v${appVersion} 全量 ${allStrings.length} 条 UI 词条写入基准文件: ${baselinePath}`);
+        console.log(`\n[OK] ${allStrings.length} strings de UI da v${appVersion} gravadas no arquivo de referência: ${baselinePath}`);
     } else {
-        console.log('\n提示: 翻译完成后，可加上参数 --update-baseline 将当前版本保存为新的对比基准。');
+        console.log('\nDica: após concluir a tradução, adicione --update-baseline para salvar esta versão como nova referência.');
     }
 }
 
@@ -783,20 +783,20 @@ async function main() {
             await cmdScanUi(args);
             break;
         default:
-            console.log('Antigravity 逆向与排查综合工具集 (dev_tool.js)');
-            console.log('可用命令:');
-            console.log('  node scripts/dev_tool.js port                          - 检测语言服务器 PID、端口与 CSRF Token');
-            console.log('  node scripts/dev_tool.js search <keyword>              - 在运行中的 live main.js 中搜索关键字');
-            console.log('  node scripts/dev_tool.js slice <pos> [len]             - 查看 live main.js 指定位置切片');
-            console.log('  node scripts/dev_tool.js dump-mcp [--update-baseline]  - 导出官方 MCP 目录并与 Git 基准进行增量对比');
-            console.log('  node scripts/dev_tool.js scan-ui [--update-baseline]   - 扫描全量界面与悬浮提示词条，并与基准及词典进行增量对比');
+            console.log('Conjunto de ferramentas de engenharia reversa e diagnóstico do Antigravity (dev_tool.js)');
+            console.log('Comandos disponíveis:');
+            console.log('  node scripts/dev_tool.js port                          - Exibe PID, portas e CSRF Token do language_server');
+            console.log('  node scripts/dev_tool.js search <keyword>              - Pesquisa palavra-chave no main.js em execução');
+            console.log('  node scripts/dev_tool.js slice <pos> [len]             - Exibe trecho do main.js na posição indicada');
+            console.log('  node scripts/dev_tool.js dump-mcp [--update-baseline]  - Exporta catálogo MCP oficial e compara com a referência');
+            console.log('  node scripts/dev_tool.js scan-ui [--update-baseline]   - Varre strings da interface e compara com base e dicionários');
             break;
     }
 }
 
 if (require.main === module) {
     main().catch(err => {
-        console.error('[错误]', err.message);
+        console.error('[Erro]', err.message);
         process.exitCode = 1;
     });
 }

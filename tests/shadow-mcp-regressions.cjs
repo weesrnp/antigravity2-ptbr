@@ -26,10 +26,10 @@ test('translates pre-existing shadow content and observes later text changes', a
     t.after(() => f.close());
     const button = f.window.document.getElementById('host').shadowRoot.querySelector('button');
     await f.flush();
-    assert.equal(button.textContent, '设置');
+    assert.equal(button.textContent, 'Configurações');
     button.firstChild.nodeValue = 'Cancel';
     await f.flush();
-    assert.equal(button.textContent, '取消');
+    assert.equal(button.textContent, 'Cancelar');
 });
 
 test('finds nested existing shadow roots without translating protected editor content', async t => {
@@ -43,10 +43,10 @@ test('finds nested existing shadow roots without translating protected editor co
     t.after(() => f.close());
     await f.flush();
     const nested = f.window.document.getElementById('outer').shadowRoot.firstChild.shadowRoot;
-    assert.equal(nested.textContent, '设置');
+    assert.equal(nested.textContent, 'Configurações');
     nested.firstChild.textContent = 'Cancel';
     await f.flush();
-    assert.equal(nested.textContent, '取消');
+    assert.equal(nested.textContent, 'Cancelar');
     assert.equal(f.window.document.getElementById('editor').shadowRoot.textContent, 'Settings');
 });
 
@@ -56,5 +56,5 @@ test('continues translating shadow roots attached after startup', async t => {
     const root = f.window.document.getElementById('host').attachShadow({ mode: 'open' });
     root.innerHTML = '<button>Settings</button>';
     await f.flush();
-    assert.equal(root.textContent, '设置');
+    assert.equal(root.textContent, 'Configurações');
 });

@@ -4,11 +4,8 @@ Versão pt-BR de [qqxpee/antigravity2-cn](https://github.com/qqxpee/antigravity2
 
 ## Estado atual (2026-11-27)
 
-- Etapa 1 do roteiro concluída: código do original importado sem alterações, do commit `8ee9617`, anunciado para Antigravity `v2.35.1+`. O `.clinerules` e o `.cursorrules` foram deixados de fora, porque este arquivo os substitui.
-- Linha de base no Windows: `node --check` passa em todos os arquivos, `compare_dicts.js` passa e `npm test` dá 82 aprovados, 0 falhas e 3 pulados (testes só de macOS).
-- Tirei do `.gitignore` herdado a linha que ignorava `AGENTS.md`. A pasta ainda não é um repositório git.
-- Versão instalada na máquina de desenvolvimento: `2.36.0`, em `%LOCALAPPDATA%\Programs\Antigravity`. A compatibilidade com ela ainda não foi testada.
-- Node `v26.13.0`.
+- A base é o commit `8ee9617` do original, anunciado para Antigravity 2.35.1+. A versão em português usa seis dicionários com 5.289 entradas. Os cinco lotes de revisão resultaram em 149 correções.
+- No Windows com Node.js 26.11.1, a suíte teve 82 aprovações, zero falhas e três testes específicos dos lançadores macOS pulados. Na cópia do Antigravity 2.36.0, o patch alterou 26 arquivos internos do ASAR. A restauração recuperou o SHA-256 original.
 
 ## Escopo
 
@@ -30,17 +27,11 @@ Versão pt-BR de [qqxpee/antigravity2-cn](https://github.com/qqxpee/antigravity2
 | `scripts/` | `compare_dicts.js`, `dev_tool.js`, `ensure_localized.js` |
 | `tests/` | Regressões com `node --test` e `jsdom` |
 
-## Onde há texto em chinês além dos dicionários
+## Onde atualizar a tradução
 
-Traduzir só `dicts/` deixa a interface meio em chinês. Há texto também em:
+Além de `dicts/`, revise as regras dinâmicas de `src/preload_runtime.js`, os diálogos nativos de `src/main_patches.js`, as mensagens do motor e os lançadores. Ajuste as asserções correspondentes em `tests/`. O primeiro elemento de cada par em `MAIN_PROCESS_TEXT_TABLES` identifica o trecho exato do aplicativo e precisa ser preservado.
 
-- `src/preload_runtime.js` (cerca de 1.260 linhas com caracteres chineses, muitas são regras dinâmicas de substituição)
-- `src/main_patches.js` (cerca de 710)
-- `tests/*.cjs` (cerca de 880; as asserções esperam o texto chinês)
-- `localization_engine.js`, `scripts/*.js` (mensagens de log e comentários)
-- Nomes e conteúdo dos `.bat` e `.command`
-
-Seletores CSS que citam `aria-label` traduzido (ex.: `[aria-label="文件查看器"]`) precisam receber exatamente o mesmo texto pt-BR definido no dicionário. Se divergirem, o isolamento falha e o motor pode traduzir conteúdo de arquivo.
+Seletores CSS com um `aria-label` traduzido, como `Visualizador de arquivos`, precisam coincidir com o dicionário. Confira que tanto o seletor inglês quanto o português protegem o conteúdo exibido após alterações no DOM.
 
 ## Regras de tradução
 
@@ -81,7 +72,7 @@ Termo novo e recorrente entra nesta tabela antes de ser aplicado.
 
 ## Verificação
 
-Disponível depois de importar o código. Antes de declarar pronto:
+Antes de integrar uma alteração, execute as verificações na raiz do repositório.
 
 ```powershell
 npm ci
@@ -91,7 +82,7 @@ node scripts/compare_dicts.js
 ```
 
 - Repetir `node --check` em cada arquivo de `src/` e `scripts/`.
-- `compare_dicts.js` hoje compara `dicts/` com `dicts_tw/`. Precisa ser reescrito para validar: JSON válido, nenhuma chave duplicada, nenhum valor vazio e nenhum caractere chinês restante.
+- `compare_dicts.js` verifica sintaxe JSON, chaves duplicadas, valores vazios, caracteres CJK e preservação de placeholders, tags, URLs e trechos entre crases.
 - Teste passando não prova que a tela está certa: a conferência visual no Antigravity é feita pelo usuário.
 
 ## Atualização do Antigravity

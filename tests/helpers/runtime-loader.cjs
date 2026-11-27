@@ -48,10 +48,13 @@ function loadEngine({ argv = [] } = {}) {
     return context;
 }
 
-function loadRuntime({ traditional = false, brandTitle = 'english' } = {}) {
-    const argv = ['--brand-title', brandTitle];
-    if (traditional) argv.push('--tw');
-    return loadEngine({ argv }).generateJs();
+function loadRuntime({ brandTitle = 'english', dictionaryOverrides } = {}) {
+    const engine = loadEngine({ argv: ['--brand-title', brandTitle] });
+    if (dictionaryOverrides) {
+        const loadDictionary = engine.loadDictionary;
+        engine.loadDictionary = options => ({ ...loadDictionary(options), ...dictionaryOverrides });
+    }
+    return engine.generateJs();
 }
 
 function createDom(html, options = {}) {

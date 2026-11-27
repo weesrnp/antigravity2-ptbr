@@ -16,7 +16,7 @@ const {
     MAIN_PROCESS_PATCH_TARGETS
 } = require('./src/main_patches');
 
-// 比较形如 v8.17.0 / v24.22.2 的 Node 版本目录名，按数值升序排列（字典序会把 v8 误排在 v24 之后）
+// Compara nomes de diretórios de versão do Node como v8.17.0 / v24.22.2 em ordem numérica crescente (ordem lexicográfica colocaria v8 depois de v24)
 function compareNodeVersions(a, b) {
     const parse = v => String(v).replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
     const pa = parse(a);
@@ -28,8 +28,8 @@ function compareNodeVersions(a, b) {
     return 0;
 }
 
-// 选取一个支持现代语法（可选链 ?. 等，Node >= 14）的解释器用于 --check 校验。
-// Antigravity 自带的 dist 源码使用可选链，若用过旧的 Node（如 v8）校验会误报“语法校验失败”。
+// Seleciona um interpretador Node >= 14 com suporte a sintaxe moderna (encadeamento opcional ?., etc.) para verificação --check.
+// Os arquivos dist do Antigravity usam encadeamento opcional; validar com Node antigo (ex.: v8) acusaria falso erro de sintaxe.
 function resolveCheckNode() {
     const majorOf = out => {
         const m = String(out).trim().match(/v?(\d+)\./);
@@ -98,7 +98,7 @@ function resolveLinuxConfigBaseDir() {
     return path.join(resolveRealHome(), '.config');
 }
 
-// macOS / Linux 环境下自动补全 PATH，确保系统工具与 Node 版本管理器路径可被找到
+// Completa o PATH no macOS / Linux para localizar ferramentas do sistema e gerenciadores de versão do Node
 if (process.platform === 'darwin' || process.platform === 'linux') {
     const realHome = resolveRealHome();
     const extraPaths = process.platform === 'darwin'
@@ -129,8 +129,8 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
     const nvmVersionsDir = path.join(realHome, '.nvm', 'versions', 'node');
     if (fs.existsSync(nvmVersionsDir)) {
         try {
-            // 按版本号升序排序（而非字典序），确保最新版本最后被 unshift，从而排在 PATH 最前面。
-            // 字典序会把 v8.x 排在 v24.x 之后，导致旧版 Node 被优先选用。
+            // Ordena por versão em ordem crescente (não lexicográfica) para que a versão mais recente seja inserida por último com unshift e fique na frente do PATH.
+            // Ordem lexicográfica colocaria v8.x depois de v24.x, priorizando uma versão antiga do Node.
             const versions = fs.readdirSync(nvmVersionsDir).sort(compareNodeVersions);
             for (const v of versions) {
                 extraPaths.push(path.join(nvmVersionsDir, v, 'bin'));
@@ -150,7 +150,6 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
     process.env.PATH = currentPaths.join(':');
 }
 
-const DICTS_FOLDER = 'dicts';
 const BRAND_TITLE_ALIASES = {
     english: 'english',
     en: 'english',
@@ -159,9 +158,9 @@ const BRAND_TITLE_ALIASES = {
     hide: 'hidden',
     none: 'hidden',
     translated: 'translated',
-    chinese: 'translated',
-    cn: 'translated',
-    zh: 'translated'
+    pt: 'translated',
+    'pt-br': 'translated',
+    ptbr: 'translated'
 };
 
 function getOptionValue(name, defaultValue) {
@@ -183,7 +182,7 @@ function getOptionValue(name, defaultValue) {
 const rawBrandTitle = String(getOptionValue('--brand-title', 'english')).toLowerCase();
 let BRAND_TITLE_MODE = BRAND_TITLE_ALIASES[rawBrandTitle] || 'english';
 if (!BRAND_TITLE_ALIASES[rawBrandTitle]) {
-    console.warn(`[警告] 未识别的 --brand-title 参数 "${rawBrandTitle}"，已回退为 english。`);
+    console.warn(`[Aviso] Valor não reconhecido para --brand-title "${rawBrandTitle}"; usando english por padrão.`);
 }
 
 const SIGNATURE_START = "/* --- ANTIGRAVITY CHINESE LOCALIZATION START --- */";
@@ -206,7 +205,7 @@ function loadDictionary({
     const totalMap = {};
     const dictsDir = path.join(__dirname, 'dicts');
     if (!fs.existsSync(dictsDir)) {
-        throw new Error(`词典目录不存在: ${dictsDir}`);
+        throw new Error(`Diretório de dicionários não encontrado: ${dictsDir}`);
     }
     const files = fs.readdirSync(dictsDir).filter(file => file.endsWith('.json')).sort();
     for (const file of files) {
@@ -219,11 +218,11 @@ function loadDictionary({
                 if (normK) totalMap[normK] = v;
             }
         } catch (e) {
-            throw new Error(`词典文件解析失败 (${filePath}): ${e.message}`);
+            throw new Error(`Falha ao analisar arquivo de dicionário (${filePath}): ${e.message}`);
         }
     }
     if (Object.keys(totalMap).length === 0) {
-        throw new Error(`词典目录未加载到有效词条: ${dictsDir}`);
+        throw new Error(`Nenhuma entrada válida carregada do diretório de dicionários: ${dictsDir}`);
     }
     if (brandTitle === 'english') {
         delete totalMap[normalizeText('Antigravity')];
@@ -428,9 +427,9 @@ function sleepSync(ms) {
 }
 
 function closeAntigravityProcesses(installDir) {
-    console.log("[1] 检测到 Antigravity 客户端正在运行，正在关闭以解除文件锁...");
+    console.log("[1] Cliente Antigravity em execução detectado; encerrando para liberar o bloqueio de arquivo...");
     try {
-        // 第一阶段：尝试发送温和退出信号 (WM_CLOSE / SIGTERM)，让客户端有机会触发 before-quit 优雅落盘
+        // Primeira etapa: envia sinal de encerramento suave (WM_CLOSE / SIGTERM) para o processo principal gravar dados antes de sair
         if (process.platform === 'win32') {
             child_process.execSync('taskkill /im Antigravity.exe >nul 2>nul');
         } else if (process.platform === 'linux') {
@@ -442,14 +441,14 @@ function closeAntigravityProcesses(installDir) {
         }
     } catch (e) {}
 
-    // 等待最多 2.5 秒让主进程响应退出
+    // Aguarda até 2,5 segundos para o processo principal encerrar
     const waitStart = Date.now();
     while (Date.now() - waitStart < 2500) {
         sleepSync(250);
         if (!checkIfAppIsRunning(installDir)) break;
     }
 
-    // 第二阶段：无论主窗口是否已关闭，都必须彻底清理所有残余的 Electron GPU/渲染子进程，彻底释放 app.asar 文件锁
+    // Segunda etapa: garante o encerramento dos subprocessos GPU/Renderer remanescentes para liberar totalmente o bloqueio do app.asar
     try {
         if (process.platform === 'win32') {
             child_process.execSync('taskkill /f /im Antigravity.exe /t >nul 2>nul');
@@ -473,7 +472,7 @@ function detectInstallationDir(manualDir) {
             }
             return resolved;
         } else {
-            console.error(`[错误] 手动指定的路径不存在: ${manualDir}`);
+            console.error(`[Erro] O caminho informado manualmente não existe: ${manualDir}`);
             process.exit(1);
         }
     }
@@ -597,12 +596,12 @@ function detectInstallationDir(manualDir) {
 
     for (const p of candidates) {
         if (fs.existsSync(p) && hasAntigravityResources(p)) {
-            console.log(`[探测] 成功自动识别到 Antigravity 安装目录: ${p}`);
+            console.log(`[Detecção] Diretório de instalação do Antigravity identificado automaticamente: ${p}`);
             return path.resolve(p);
         }
     }
 
-    console.error("[错误] 未找到默认安装目录，请使用 --install-dir 手动指定您的安装路径！");
+    console.error("[Erro] Diretório de instalação padrão não encontrado; use --install-dir para informar o caminho manualmente!");
     process.exit(1);
 }
 
@@ -661,7 +660,7 @@ function cleanElectronCache() {
     }
 
     if (cleanedCount > 0) {
-        console.log(`[缓存] 已自动清理 ${cleanedCount} 个应用缓存目录，避免新旧版本字节码冲突。`);
+        console.log(`[Cache] ${cleanedCount} ${cleanedCount === 1 ? 'diretório de cache do aplicativo limpo automaticamente' : 'diretórios de cache do aplicativo limpos automaticamente'} para evitar conflito de bytecode entre versões.`);
     }
 }
 
@@ -691,7 +690,7 @@ function resignAppOnMac(anyPath) {
 
     const targetApp = resolveMacAppBundle(anyPath);
     if (!isValidMacAppBundle(targetApp)) {
-        console.log(`[签名] 目标路径并非完整 macOS .app 应用包，已跳过重签名: ${anyPath}`);
+        console.log(`[Assinatura] O caminho de destino não é um pacote .app completo do macOS; reassinatura ignorada: ${anyPath}`);
         return true;
     }
 
@@ -703,48 +702,48 @@ function resignAppOnMac(anyPath) {
             if (plistContent.includes('ElectronAsarIntegrity')) {
                 const asarBuf = fs.readFileSync(macAsarPath);
                 if (asarBuf.length < 16) {
-                    throw new Error('app.asar 长度不足 16 字节');
+                    throw new Error('app.asar tem menos de 16 bytes');
                 }
                 const headerStrSize = asarBuf.readUInt32LE(12);
                 if (16 + headerStrSize > asarBuf.length) {
-                    throw new Error('app.asar 头长度越界');
+                    throw new Error('Tamanho do cabeçalho de app.asar fora dos limites');
                 }
                 const headerHash = crypto.createHash('sha256').update(asarBuf.subarray(16, 16 + headerStrSize)).digest('hex');
                 const integrityRegex = /(<key>ElectronAsarIntegrity<\/key>[\s\S]*?<key>Resources\/app\.asar<\/key>\s*<dict>(?:(?!<\/dict>)[\s\S])*?<key>hash<\/key>\s*<string>)[a-fA-F0-9]{64}(<\/string>)/;
                 if (!integrityRegex.test(plistContent)) {
-                    console.error(`[错误] 未能识别有效的 ElectronAsarIntegrity 格式，已中止签名。`);
+                    console.error(`[Erro] Formato válido de ElectronAsarIntegrity não identificado; assinatura cancelada.`);
                     return false;
                 }
                 const updatedPlist = plistContent.replace(integrityRegex, `$1${headerHash}$2`);
                 if (updatedPlist !== plistContent) {
                     fs.writeFileSync(plistPath, updatedPlist, 'utf-8');
-                    console.log('[签名] 已同步更新 macOS Info.plist 中的 ElectronAsarIntegrity 校验值。');
+                    console.log('[Assinatura] Valor de verificação ElectronAsarIntegrity atualizado no Info.plist do macOS.');
                 }
             }
         } catch (e) {
-            console.error(`[错误] 更新 macOS Info.plist 校验值失败，已中止签名: ${e.message}`);
+            console.error(`[Erro] Falha ao atualizar verificação no Info.plist do macOS; assinatura cancelada: ${e.message}`);
             return false;
         }
     }
 
     const xattrRes = spawnCommandSync('xattr', ['-cr', targetApp]);
     if (!xattrRes.success) {
-        console.warn(`[警告] 清理扩展属性 (xattr) 失败: ${xattrRes.stderr || xattrRes.stdout}`);
+        console.warn(`[Aviso] Falha ao limpar atributos estendidos (xattr): ${xattrRes.stderr || xattrRes.stdout}`);
     }
-    console.log(`[签名] 检测到 macOS 平台，正在对应用包进行本地 ad-hoc 深度重签名: ${targetApp} ...`);
+    console.log(`[Assinatura] Plataforma macOS detectada; aplicando reassinatura local ad-hoc profunda no pacote: ${targetApp} ...`);
     const signRes = spawnCommandSync('codesign', ['--force', '--deep', '--sign', '-', targetApp]);
     if (signRes.success) {
-        console.log(`[签名] 重新签名成功！`);
+        console.log(`[Assinatura] Reassinatura concluída com sucesso!`);
         return true;
     }
-    console.error(`[错误] 重新签名失败，已中止操作。详情:\n${signRes.stderr}\n${signRes.stdout}`);
+    console.error(`[Erro] Falha na reassinatura; operação cancelada. Detalhes:\n${signRes.stderr}\n${signRes.stdout}`);
     return false;
 }
 
 function printMacAppManagementHint() {
-    console.error("[权限] macOS 已阻止写入应用目录：这是系统“App 管理”保护机制（TCC）拦截，仅靠 sudo 无法绕过。");
-    console.error("[权限] 请前往“系统设置 -> 隐私与安全性 -> App 管理”，为当前运行脚本的终端应用（Terminal / iTerm2 / Warp / VS Code 等）开启权限；若仍失败，再开启同一应用的“完全磁盘访问权限”。");
-    console.error("[权限] 授权后请按 Cmd+Q 完全退出该终端并重新打开，再重新运行本脚本。");
+    console.error('[Permissão] O macOS bloqueou a gravação no diretório do aplicativo: a proteção "Gerenciamento de Apps" (TCC) do sistema impediu o acesso, e apenas sudo não contorna isso.');
+    console.error('[Permissão] Vá em "Ajustes do Sistema -> Privacidade e Segurança -> Gerenciamento de Apps" e ative a permissão para o terminal em uso (Terminal / iTerm2 / Warp / VS Code etc.); se ainda falhar, ative também "Acesso Total ao Disco" para o mesmo aplicativo.');
+    console.error('[Permissão] Após autorizar, feche completamente o terminal com Cmd+Q, abra novamente e execute este script de novo.');
 }
 
 function collectLinuxForwardEnvVars(keys) {
@@ -755,19 +754,13 @@ function collectLinuxForwardEnvVars(keys) {
     return pairs;
 }
 
-const LINUX_GUI_PROXY_ENV_KEYS = [
+const LINUX_GUI_ENV_KEYS = [
     'DISPLAY',
     'WAYLAND_DISPLAY',
     'XAUTHORITY',
     'XDG_RUNTIME_DIR',
     'DBUS_SESSION_BUS_ADDRESS',
-    'XDG_CONFIG_HOME',
-    'HTTP_PROXY',
-    'HTTPS_PROXY',
-    'ALL_PROXY',
-    'http_proxy',
-    'https_proxy',
-    'all_proxy'
+    'XDG_CONFIG_HOME'
 ];
 
 function ensureWritePermission(targetDir) {
@@ -779,7 +772,7 @@ function ensureWritePermission(targetDir) {
             return true;
         } catch (err) {
             if (err && (err.code === 'EPERM' || err.code === 'EACCES')) {
-                console.error("[权限] 当前用户对目标目录缺少写入权限，请右键以管理员身份运行安装脚本。");
+                console.error("[Permissão] O usuário atual não tem permissão de gravação no diretório de destino; clique com o botão direito e execute o instalador como administrador.");
                 return false;
             }
             return true;
@@ -801,16 +794,16 @@ function ensureWritePermission(targetDir) {
                 return false;
             }
             if (process.platform === 'darwin') {
-                console.log("[权限] 检测到当前用户对 macOS 应用目录缺少写入权限，正在尝试请求管理员权限 (sudo) 重新运行...");
+                console.log("[Permissão] Permissão de gravação ausente no diretório do aplicativo no macOS; tentando solicitar privilégios de administrador (sudo)...");
             } else {
-                console.log("[权限] 检测到当前用户对应用目录缺少写入权限，正在尝试请求管理员权限 (sudo) 重新运行...");
+                console.log("[Permissão] Permissão de gravação ausente no diretório do aplicativo; tentando solicitar privilégios de administrador (sudo)...");
             }
             const args = process.argv.slice(1);
             const hasBrandArg = args.some(a => a === '--brand-title' || a.startsWith('--brand-title='));
             const forwardArgs = hasBrandArg ? args : [...args, '--brand-title', BRAND_TITLE_MODE];
             const sudoArgs = [];
             if (process.platform === 'linux') {
-                const preservedVars = collectLinuxForwardEnvVars(['PATH', ...LINUX_GUI_PROXY_ENV_KEYS]);
+                const preservedVars = collectLinuxForwardEnvVars(['PATH', ...LINUX_GUI_ENV_KEYS]);
                 if (preservedVars.length > 0) {
                     sudoArgs.push('env', ...preservedVars);
                 }
@@ -825,7 +818,7 @@ function ensureWritePermission(targetDir) {
             if (res.status === 0) {
                 process.exit(0);
             } else {
-                console.error("\n[错误] 管理员提权执行失败或用户取消了密码输入。");
+                console.error("\n[Erro] Falha na elevação para administrador ou o usuário cancelou a digitação da senha.");
                 process.exit(res.status || 1);
             }
         }
@@ -833,9 +826,9 @@ function ensureWritePermission(targetDir) {
     }
 }
 
-// ==========================================
-// Antigravity 2.0 汉化部署引擎 (零依赖纯 Node.js 原生 ASAR 打包模式)
-// ==========================================
+// =========================================================================
+// Motor de implantação da tradução do Antigravity 2.0 (empacotamento ASAR nativo em Node.js puro, sem dependências externas)
+// =========================================================================
 function replaceFileWithRetry(srcPath, destPath, allowKill = false) {
     let lastErr;
     for (let attempt = 0; attempt < 10; attempt++) {
@@ -854,7 +847,7 @@ function replaceFileWithRetry(srcPath, destPath, allowKill = false) {
             throw err;
         }
     }
-    throw new Error(`文件替换失败 (${srcPath} -> ${destPath}): ${lastErr ? lastErr.message : 'unknown'}`);
+    throw new Error(`Falha ao substituir arquivo (${srcPath} -> ${destPath}): ${lastErr ? lastErr.message : 'erro desconhecido'}`);
 }
 
 function install20(resourcesDir, noKill = false) {
@@ -862,7 +855,7 @@ function install20(resourcesDir, noKill = false) {
     const bakPath = path.join(resourcesDir, "app.asar.bak");
 
     if (!fs.existsSync(asarPath)) {
-        console.error(`[错误] 未在资源目录中找到 app.asar: ${resourcesDir}`);
+        console.error(`[Erro] app.asar não encontrado no diretório de recursos: ${resourcesDir}`);
         return false;
     }
 
@@ -873,7 +866,7 @@ function install20(resourcesDir, noKill = false) {
         const isAlreadyLocalized = originalLive.indexOf(Buffer.from(SIGNATURE_START, "utf8")) !== -1;
 
         if (isAlreadyLocalized && !fs.existsSync(bakPath)) {
-            console.error("[错误] 检测到当前 app.asar 已安装过汉化，但官方备份文件 app.asar.bak 丢失！为防止将已汉化文件误存为官方备份，已中止操作。请先恢复官方原版客户端后再安装。");
+            console.error("[Erro] Detectado que o app.asar atual já possui tradução instalada, mas o backup oficial app.asar.bak está ausente! Operação cancelada para evitar salvar um arquivo já traduzido como backup oficial. Restaure o cliente oficial original antes de instalar.");
             return false;
         }
 
@@ -898,18 +891,18 @@ function install20(resourcesDir, noKill = false) {
             ...MAIN_PROCESS_PATCH_TARGETS.map(relPath => [relPath, content => patchMainProcessModule(relPath, content)])
         ]);
 
-        console.log(`[打包] 正在使用原生引擎生成并校验汉化候选包...`);
+        console.log(`[Empacotamento] Gerando e validando o pacote candidato de tradução com o motor nativo...`);
         const modifiedFiles = patchAsarArchive(sourceArchive, candidatePath, modifierMap);
 
         if (!modifiedFiles.has('dist/preload.js')) {
-            console.error(`[错误] 未能在 app.asar 中找到 dist/preload.js`);
+            console.error(`[Erro] dist/preload.js não encontrado dentro de app.asar`);
             return false;
         }
 
         validateAsarCandidate(sourceArchive, candidatePath, SIGNATURE_START);
         const checkNode = resolveCheckNode();
         if (!checkNode) {
-            console.warn(`[警告] 当前 Node (${process.versions.node}) 过旧且未找到 Node >= 14，已跳过候选包语法校验。建议升级 Node 后重试以获得完整校验。`);
+            console.warn(`[Aviso] O Node atual (${process.versions.node}) é antigo e não foi encontrado Node >= 14; validação de sintaxe do pacote candidato ignorada. Recomenda-se atualizar o Node e tentar novamente para validação completa.`);
         }
         for (const [relPath, buf] of modifiedFiles.entries()) {
             const checkFile = path.join(buildDir, path.basename(relPath));
@@ -919,12 +912,12 @@ function install20(resourcesDir, noKill = false) {
                 child_process.execFileSync(checkNode, ['--check', checkFile], { stdio: 'pipe' });
             } catch (syntaxErr) {
                 const detail = syntaxErr.stderr ? String(syntaxErr.stderr).trim() : syntaxErr.message;
-                throw new Error(`语法校验失败 (${relPath}): ${detail}`);
+                throw new Error(`Falha na verificação de sintaxe (${relPath}): ${detail}`);
             }
         }
 
         if (!fs.readFileSync(asarPath).equals(originalLive)) {
-            throw new Error('App changed during localization; please retry after the update completes');
+            throw new Error('O aplicativo foi alterado durante a tradução; tente novamente após a conclusão da atualização');
         }
 
         const macBundleForPlist = process.platform === 'darwin' ? resolveMacAppBundle(resourcesDir) : null;
@@ -939,7 +932,7 @@ function install20(resourcesDir, noKill = false) {
                 replaceFileWithRetry(rollbackArchive, asarPath, !noKill);
             } catch (rollbackError) {
                 retainRecoveryFiles = true;
-                throw new Error(`Backup promotion and rollback failed; original app retained at ${rollbackArchive}: ${rollbackError.message}`);
+                throw new Error(`Falha ao promover backup e reverter alteração; arquivo original mantido em ${rollbackArchive}: ${rollbackError.message}`);
             }
             throw error;
         }
@@ -957,19 +950,19 @@ function install20(resourcesDir, noKill = false) {
                 if (plistBackup && plistPath) fs.writeFileSync(plistPath, plistBackup);
                 if (refreshBackup && fs.existsSync(bakPath)) fs.unlinkSync(bakPath);
             } catch (rollbackError) {
-                throw new Error(`macOS 签名失败且回滚失败: ${rollbackError.message}`);
+                throw new Error(`Falha na assinatura do macOS e falha na reversão: ${rollbackError.message}`);
             }
             return false;
         }
-        console.log(`[√] Antigravity 2.0 汉化部署完成！`);
+        console.log(`[OK] Implantação da tradução do Antigravity 2.0 concluída!`);
         return true;
     } catch (error) {
-        console.error(`[错误] 汉化未完成，未提交的候选包不会替换客户端: ${error.message}`);
+        console.error(`[Erro] A tradução não foi concluída; o pacote candidato não confirmado não substituirá o cliente: ${error.message}`);
         return false;
     } finally {
         if (buildDir && !retainRecoveryFiles) {
             try { fs.rmSync(buildDir, { recursive: true, force: true }); } catch (error) {
-                console.warn(`[提示] 临时目录已保留: ${buildDir}`);
+                console.warn(`[Aviso] Diretório temporário mantido: ${buildDir}`);
             }
         }
     }
@@ -980,11 +973,11 @@ function restore20(resourcesDir, noKill = false) {
     const bakPath = path.join(resourcesDir, "app.asar.bak");
 
     if (!fs.existsSync(bakPath)) {
-        console.log("[!] 未找到备份文件 app.asar.bak，可能尚未安装过汉化或备份被删除。");
+        console.log("[!] Arquivo de backup app.asar.bak não encontrado; a tradução pode não ter sido instalada ou o backup foi removido.");
         return false;
     }
 
-    console.log("[还原] 正在用官方备份文件恢复...");
+    console.log("[Restauração] Restaurando a partir do arquivo de backup oficial...");
     let restoreDir;
     let retainRestoreFiles = false;
     try {
@@ -1007,14 +1000,14 @@ function restore20(resourcesDir, noKill = false) {
                 if (plistBackup && plistPath) fs.writeFileSync(plistPath, plistBackup);
             } catch (rollbackError) {
                 retainRestoreFiles = true;
-                throw new Error(`macOS 恢复签名失败且回滚失败，原文件保留于 ${previousBackup}: ${rollbackError.message}`);
+                throw new Error(`Falha na assinatura do macOS durante restauração e falha na reversão; arquivo original mantido em ${previousBackup}: ${rollbackError.message}`);
             }
             return false;
         }
     } catch (e) {
-        console.error(`[错误] 恢复备份失败: ${e.message}`);
+        console.error(`[Erro] Falha ao restaurar backup: ${e.message}`);
         if (process.platform === 'darwin' && (e.code === 'EPERM' || e.code === 'EACCES')) {
-            console.error(`[提示] macOS 写入受限，请检查终端应用的“App 管理”与“完全磁盘访问权限”。`);
+            console.error('[Aviso] Gravação restrita no macOS; verifique as permissões de "Gerenciamento de Apps" e "Acesso Total ao Disco" para o aplicativo de terminal.');
         }
         return false;
     } finally {
@@ -1022,7 +1015,7 @@ function restore20(resourcesDir, noKill = false) {
             try { fs.rmSync(restoreDir, { recursive: true, force: true }); } catch (_e) {}
         }
     }
-    console.log("[√] 官方 app.asar 已成功恢复！");
+    console.log("[OK] Arquivo oficial app.asar restaurado com sucesso!");
     return true;
 }
 
@@ -1064,7 +1057,7 @@ function saveLocalizationPref(installDir, pref) {
             }
         }
     } catch (e) {
-        console.warn(`[警告] 保存汉化偏好配置失败: ${e.message}`);
+        console.warn(`[Aviso] Falha ao salvar preferências de tradução: ${e.message}`);
     }
 }
 
@@ -1090,13 +1083,13 @@ function resolveBrandTitleChoice(choice) {
 
 function promptBrandTitleMode({ input = process.stdin, output = process.stdout, log = console.log } = {}) {
     const promptLines = [
-            '',
-            '请选择左上角品牌显示方式：',
-            '[1] 保持英文 Antigravity（推荐）',
-            '[2] 隐藏品牌名',
-            '[3] 汉化为品牌名（反重力）'
-        ];
-    const questionText = '请选择 [1/2/3] (直接按 Enter 默认为 1): ';
+        '',
+        'Escolha como exibir a marca no canto superior esquerdo:',
+        '[1] Manter em inglês: Antigravity (recomendado)',
+        '[2] Ocultar nome da marca',
+        '[3] Usar nome traduzido do dicionário'
+    ];
+    const questionText = 'Escolha [1/2/3] (Enter usa 1 por padrão): ';
 
     for (const line of promptLines) {
         log(line);
@@ -1130,17 +1123,17 @@ function checkSupportedNodeVersion() {
     var parts = String((typeof process !== 'undefined' && process.versions && process.versions.node) || '0.0.0').split('.');
     var major = parseInt(parts[0], 10) || 0;
     if (major < 16) {
-        console.error('[错误] 当前 Node.js 版本过低 (' + process.versions.node + ')，无法兼容 Antigravity 2.x 现代语法或安装引擎需求。请安装 Node.js 18 LTS 及以上版本，并确认终端 PATH 优先指向新版 node。');
+        console.error('[Erro] Versão do Node.js muito antiga (' + process.versions.node + '), incompatível com a sintaxe moderna do Antigravity 2.x ou com o motor de instalação. Instale o Node.js 18 LTS ou superior e verifique se o PATH prioriza o node mais recente.');
         return false;
     }
     if (major < 18) {
-        console.warn('[警告] 检测到 Node.js 版本为 ' + process.versions.node + '（建议使用 18 LTS 及以上版本以获得完整兼容性）。');
+        console.warn('[Aviso] Versão do Node.js detectada: ' + process.versions.node + ' (recomenda-se 18 LTS ou superior para compatibilidade total).');
     }
     return true;
 }
 
 // ==========================================
-// 入口
+// Ponto de entrada
 // ==========================================
 async function main() {
     if (typeof require === 'function' && typeof module !== 'undefined' && require.main !== module) {
@@ -1162,7 +1155,7 @@ async function main() {
             interactive = true;
         } else if (args[i] === '--install-dir') {
             if (i + 1 >= args.length || !args[i + 1] || args[i + 1].startsWith('--')) {
-                console.error('[错误] --install-dir 缺少有效的路径参数！');
+                console.error('[Erro] --install-dir exige um caminho válido!');
                 process.exit(1);
             }
             manualDir = args[i + 1];
@@ -1170,20 +1163,20 @@ async function main() {
         } else if (args[i].startsWith('--install-dir=')) {
             manualDir = args[i].slice('--install-dir='.length);
             if (!manualDir) {
-                console.error('[错误] --install-dir= 路径不能为空！');
+                console.error('[Erro] O caminho de --install-dir= não pode ficar vazio!');
                 process.exit(1);
             }
         } else if (args[i] === '--no-kill') {
             noKill = true;
         } else if (args[i] === '--brand-title') {
             if (i + 1 >= args.length || !args[i + 1] || args[i + 1].startsWith('--')) {
-                console.error('[错误] --brand-title 缺少有效的参数值（支持 english / hidden / translated）！');
+                console.error('[Erro] --brand-title exige um valor válido (aceitos: english / hidden / translated)!');
                 process.exit(1);
             }
             i++;
         } else if (args[i].startsWith('--brand-title=')) {
             if (!args[i].slice('--brand-title='.length)) {
-                console.error('[错误] --brand-title= 参数值不能为空！');
+                console.error('[Erro] O valor de --brand-title= não pode ficar vazio!');
                 process.exit(1);
             }
         }
@@ -1194,21 +1187,21 @@ async function main() {
         BRAND_TITLE_MODE = await promptBrandTitleMode();
     }
     if (interactive && !huifu) {
-        console.log('\n[1/2] 正在注入汉化...');
+        console.log('\n[1/2] Aplicando tradução...');
     }
 
-    // 1. 探测路径
+    // 1. Detectar diretório de instalação
     const installDir = detectInstallationDir(manualDir);
 
-    // 2. 检测客户端是否正在运行，并根据参数决定是否关闭以解除文件锁定
+    // 2. Verificar se o cliente está em execução e encerrá-lo para liberar o bloqueio de arquivo, conforme parâmetros
     wasAppRunning = checkIfAppIsRunning(installDir);
     if (noKill) {
-        console.log("[跳过] 检测到 --no-kill 参数，跳过关闭 Antigravity 运行进程。");
+        console.log("[Ignorado] Parâmetro --no-kill detectado; encerramento do processo Antigravity ignorado.");
     } else if (wasAppRunning) {
         closeAntigravityProcesses(installDir);
     }
 
-    // 3. 找到 resources 资源目录
+    // 3. Localizar o diretório resources
     let resourcesDir = "";
     if (fs.existsSync(path.join(installDir, "resources"))) {
         resourcesDir = path.join(installDir, "resources");
@@ -1225,23 +1218,23 @@ async function main() {
     }
 
     if (!fs.existsSync(resourcesDir)) {
-        console.error(`[错误] 无法定位有效的资源(resources)目录: ${resourcesDir}`);
+        console.error(`[Erro] Não foi possível localizar um diretório de recursos válido: ${resourcesDir}`);
         process.exit(1);
     }
 
     if (!ensureWritePermission(resourcesDir)) {
-        console.error("[错误] 目标目录不可写，汉化已中止。");
+        console.error("[Erro] Diretório de destino sem permissão de gravação; tradução cancelada.");
         process.exit(1);
     }
 
-    // 4. 执行安装或卸载恢复
+    // 4. Executar instalação ou restauração
     let success = false;
 
     if (huifu) {
-        console.log("====== 正在卸载中文汉化，恢复官方原版 ======");
+        console.log("====== Desinstalando tradução e restaurando o original oficial ======");
         success = restore20(resourcesDir, noKill);
     } else {
-        console.log("====== 正在安装 Antigravity 中文汉化 ======");
+        console.log("====== Instalando tradução pt-BR do Antigravity ======");
         success = install20(resourcesDir, noKill);
         if (success) {
             saveLocalizationPref(installDir, {
@@ -1250,10 +1243,10 @@ async function main() {
         }
     }
 
-    // 5. 校验通过且原来客户端在运行，则自动重新启动客户端（仅当目标为有效客户端包/可执行程序时触发，避免自定义目录误弹 Finder）
+    // 5. Se a verificação passar e o cliente estava aberto antes, reiniciá-lo automaticamente (apenas quando o destino for um pacote/executável válido)
     const macAppBundle = process.platform === 'darwin' ? resolveMacAppBundle(installDir) : null;
     if (success && wasAppRunning && !noKill && canRestartApp(installDir)) {
-        console.log("\n[启动] 检测到安装前反重力客户端处于开启状态，正在重新启动客户端...");
+        console.log("\n[Iniciar] O cliente Antigravity estava aberto antes da instalação; reiniciando...");
         try {
             if (process.platform === 'win32') {
                 const exePath = path.join(installDir, 'Antigravity.exe');
@@ -1262,15 +1255,15 @@ async function main() {
                     stdio: 'ignore'
                 });
                 child.unref();
-                console.log("[启动] 客户端启动成功！");
+                console.log("[Iniciar] Cliente iniciado com sucesso!");
             } else if (process.platform === 'darwin') {
                 const openRes = (process.env.SUDO_USER && process.env.SUDO_USER !== 'root')
                     ? spawnCommandSync('sudo', ['-u', process.env.SUDO_USER, 'open', macAppBundle])
                     : spawnCommandSync('open', [macAppBundle]);
                 if (openRes.success) {
-                    console.log("[启动] 客户端启动成功！");
+                    console.log("[Iniciar] Cliente iniciado com sucesso!");
                 } else {
-                    console.warn(`[警告] 客户端启动失败: ${openRes.stderr || openRes.stdout}`);
+                    console.warn(`[Aviso] Falha ao iniciar cliente: ${openRes.stderr || openRes.stdout}`);
                 }
             } else if (process.platform === 'linux') {
                 if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) {
@@ -1281,7 +1274,7 @@ async function main() {
                         if (process.getuid && process.getuid() === 0 && sudoInfo) {
                             const userEnv = [];
                             if (sudoInfo.home) userEnv.push(`HOME=${sudoInfo.home}`);
-                            userEnv.push(...collectLinuxForwardEnvVars(LINUX_GUI_PROXY_ENV_KEYS));
+                            userEnv.push(...collectLinuxForwardEnvVars(LINUX_GUI_ENV_KEYS));
                             child = child_process.spawn('sudo', ['-u', sudoInfo.user, 'env', ...userEnv, launcher], {
                                 detached: true,
                                 stdio: 'ignore'
@@ -1293,23 +1286,23 @@ async function main() {
                             });
                         }
                         child.unref();
-                        console.log("[启动] 客户端启动成功！");
+                        console.log("[Iniciar] Cliente iniciado com sucesso!");
                     }
                 }
             }
         } catch (e) {
-            console.warn(`[警告] 客户端启动失败: ${e.message}`);
+            console.warn(`[Aviso] Falha ao iniciar cliente: ${e.message}`);
         }
     }
 
     if (!success) {
         if (interactive && !huifu) {
-            console.log('\n[×] 注入失败，请检查上方错误信息。');
+            console.log('\n[ERRO] Falha na aplicação; verifique as mensagens de erro acima.');
         }
         process.exit(1);
     }
     if (interactive && !huifu) {
-        console.log('\n[2/2] 注入完成！\n\n提示：汉化已成功安装。\n\n窗口将在 5 秒后自动关闭...');
+        console.log('\n[2/2] Aplicação concluída!\n\nAviso: a tradução foi instalada com sucesso.\n\nA janela será fechada automaticamente em 5 segundos...');
     }
 }
 

@@ -2,7 +2,16 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { createDom, loadRuntime } = require('./helpers/runtime-loader.cjs');
 
-// 繁体模式：React 拆段句子的空白收合、译文片段前后空白、字体图标 SVG 与名称字段（v2.35.1 审查回归）
+// Regressões de espaçamento, ícones SVG e nomes na interface.
+// Estes valores de teste acionam a regra CJK mesmo com o dicionário de produção em pt-BR.
+const cjkFixture = { dictionaryOverrides: {
+    Settings: '設定',
+    Help: '說明',
+    'Agents created by': '由 ',
+    'run in a dedicated': ' 建立於',
+    'Test workspace': '工作區',
+} };
+
 const settle = () => new Promise(resolve => setTimeout(resolve, 35));
 
 test('CJK gap handling follows node removal, deep inline edits, author whitespace, reused separators and streaming neighbors', async t => {
@@ -11,9 +20,9 @@ test('CJK gap handling follows node removal, deep inline edits, author whitespac
     const win = dom.window;
     const doc = win.document;
     const pause = settle;
-    // 停用启动后 100ms～6s 的多阶段全文扫描：扫描落在计数区间内，会把整份文件的读取次数算进来
+    // Desativa as varreduras agendadas para medir apenas as mutações do teste.
     win.setTimeout = () => 0;
-    win.eval(loadRuntime({ traditional: true }));
+    win.eval(loadRuntime(cjkFixture));
     const add = html => { const el = doc.createElement('div'); el.innerHTML = html; doc.body.append(el); return el; };
 
     const removal = add('<span>Settings<!----> <!----><b>Help</b>Bob</span>');
@@ -32,18 +41,18 @@ test('CJK gap handling follows node removal, deep inline edits, author whitespac
     await pause();
     assert.equal(removal.textContent, '設定說明Bob');
     assert.equal(deep.textContent, '設定說明');
-    // 两侧都不是这里翻译出来的中文（作者刻意留的空白、用户或 AI 的内容）：不动
+    // Espaços escolhidos pelo autor entre caracteres CJK devem permanecer.
     assert.equal(author.textContent, '甲 乙');
 
-    // React 只删除节点（addedNodes 为空）：删除位置两侧重新判断，空白还原
+    // Remover um nó também exige reavaliar os espaços vizinhos.
     removal.querySelector('b').remove();
-    // 四层行内标记里的文字换成英文：外层的空白也要还原
+    // Uma alteração dentro de quatro elementos inline deve restaurar o espaço externo.
     deep.querySelector('a span span span').firstChild.data = 'Bob';
     await pause();
     assert.equal(removal.textContent, '設定 Bob');
     assert.equal(deep.textContent, '設定 Bob');
 
-    // 收掉的空白被 React 改成分隔字再清空：旧纪录作废，之后不得「还原」出已删掉的空白
+    // Se o React reutilizar o separador, o runtime deve descartar o registro anterior.
     const sepSpan = sep.firstChild;
     const gap = Array.from(sepSpan.childNodes).find(n => n.nodeType === win.Node.TEXT_NODE && n.data === '');
     gap.data = '/';
@@ -55,7 +64,7 @@ test('CJK gap handling follows node removal, deep inline edits, author whitespac
     await pause();
     assert.equal(sep.textContent, 'AliceBob');
 
-    // 串流中的 AI 回复紧邻空白：判断空白时不读整段回复，也不收掉两侧都未经翻译的空白
+    // A resposta em streaming fica isolada e não deve ser lida para calcular o espaço.
     const desc = Object.getOwnPropertyDescriptor(win.Node.prototype, 'textContent');
     let hostReads = 0;
     Object.defineProperty(host, 'textContent', { configurable: true, get() { hostReads++; return desc.get.call(this); } });
@@ -71,9 +80,9 @@ test('icon fallbacks clean up after the icon class is removed and keep accessibl
     const win = dom.window;
     const doc = win.document;
     const pause = settle;
-    // 停用启动后 100ms～6s 的多阶段全文扫描：慢机器上扫描落在两次断言之间，会改变刻意构造的多文字节点图标宿主等结果
+    // Desativa as varreduras agendadas entre as asserções sobre os ícones.
     win.setTimeout = () => 0;
-    win.eval(loadRuntime({ traditional: true }));
+    win.eval(loadRuntime());
     const add = html => { const el = doc.createElement('div'); el.innerHTML = html; doc.body.append(el); return el; };
 
     const icon = add('<span class="google-symbols">comment</span>');
@@ -82,31 +91,31 @@ test('icon fallbacks clean up after the icon class is removed and keep accessibl
     const ellipsis = add('<span>Show 3 more results…</span><button title="Show 3 more…">x</button>');
     await pause();
 
-    // React 重用图标的文字节点、拿掉图标 class 并改成一般文字：补画的 SVG 要移除
+    // Ao reutilizar o texto e remover a classe do ícone, o React deve perder também o SVG.
     const iconSpan = icon.firstChild;
     assert.equal(iconSpan.querySelectorAll('svg').length, 1);
     iconSpan.className = '';
     Array.from(iconSpan.childNodes).find(n => n.nodeType === win.Node.TEXT_NODE).data = 'Help';
     await pause();
     assert.equal(iconSpan.querySelectorAll('svg').length, 0);
-    assert.equal(iconSpan.textContent, '說明');
+    assert.equal(iconSpan.textContent, 'Ajuda');
 
-    // 按钮只靠图标名称提供无障碍名称：清空文字后由 SVG 带著名称；宿主已隐藏时 SVG 也隐藏
+    // O SVG fornece o nome acessível quando o botão depende apenas do ícone.
     const [named, hidden] = buttons.querySelectorAll('svg');
     assert.equal(named.getAttribute('role'), 'img');
-    assert.equal(named.getAttribute('aria-label'), '評論');
+    assert.equal(named.getAttribute('aria-label'), 'Comentar');
     assert.equal(hidden.getAttribute('aria-hidden'), 'true');
     assert.equal(hidden.hasAttribute('aria-label'), false);
 
-    // 属性：既有规则照常生效；代入的片段是完整英文词组时保留原文，不拼成中英夹杂
+    // Uma frase em inglês capturada como nome permanece intacta.
     const [labelFor, swarm, open] = labels.querySelectorAll('button');
-    assert.equal(labelFor.getAttribute('aria-label'), 'Foo 的標籤');
+    assert.equal(labelFor.getAttribute('aria-label'), 'Rótulo para Foo');
     assert.equal(swarm.getAttribute('aria-label'), 'Open the Swarm UI');
-    assert.equal(open.getAttribute('aria-label'), '開啟設定');
+    assert.equal(open.getAttribute('aria-label'), 'Abrir configurações');
 
-    // 原文用单一字符的「…」时，译文也用「…」
-    assert.equal(ellipsis.querySelector('span').textContent, '顯示另外 3 個結果…');
-    assert.equal(ellipsis.querySelector('button').getAttribute('title'), '顯示另外 3 個…');
+    // Preserva o caractere único de reticências da origem.
+    assert.equal(ellipsis.querySelector('span').textContent, 'Mostrar mais 3 resultados…');
+    assert.equal(ellipsis.querySelector('button').getAttribute('title'), 'Mostrar mais 3…');
 });
 
 test('CJK spacing keeps the space beside Latin or symbols, ignores reused nodes, skips fillers the same way on both sides, re-checks grown ancestors, stays bounded and leaves editors alone', async t => {
@@ -115,39 +124,39 @@ test('CJK spacing keeps the space beside Latin or symbols, ignores reused nodes,
     const win = dom.window;
     const doc = win.document;
     const pause = settle;
-    // JSDOM 没有实作 isContentEditable：照浏览器的行为补上，才能测「事后变成可编辑」的段落
+    // O jsdom precisa de isContentEditable para simular a mudança para um editor.
     Object.defineProperty(win.HTMLElement.prototype, 'isContentEditable', { configurable: true, get() { return !!this.closest('[contenteditable="true"]'); } });
-    // 停用启动后 100ms～6s 的多阶段全文扫描：扫描落在计数区间内，会把整份文件的读取次数算进来
+    // Desativa as varreduras agendadas durante a contagem de leituras.
     win.setTimeout = () => 0;
-    win.eval(loadRuntime({ traditional: true }));
+    win.eval(loadRuntime(cjkFixture));
     const el = (tag, ...parts) => { const e = doc.createElement(tag); for (const p of parts) e.append(p); return e; };
     const para = (...parts) => { const p = el('p', ...parts); doc.body.append(p); return p; };
-    // v2.35.1 声明权限对话框的实际切法（名称之后的片段）
-    const rest = [' run in a dedicated', ' ', 'workspace', ' with its own permissions, which you can change anytime in the ', 'workspace', ' settings page.'];
-    const tail = '建立的代理執行於專用的工作區中並擁有獨立權限，您可以隨時在工作區設定頁面中變更。';
+    // Fragmentos separados por nós, como no diálogo de permissões.
+    const rest = [' run in a dedicated', ' ', 'Test workspace'];
+    const tail = '建立於工作區';
 
-    // 译文靠空白那一侧是英文或符号：空白保留
+    // Ao lado de letras latinas ou símbolos o espaço deve permanecer.
     const google = para('by allowing Google to collect and use my Interactions data, subject to the Google ', el('a', 'Privacy Policy'));
     const crumb = para('Settings - ', el('a', 'General'));
-    // 曾是译文的节点被 React 重用为用户内容
+    // O React pode reutilizar um nó traduzido para conteúdo do usuário.
     const reused = para('Settings', ' ', '乙');
-    // 片段与名称之间有空文字节点（占位）
+    // O nome pode vir após um nó de texto vazio.
     const filler = para('Agents created by ', '', '我的外掛', ...rest);
-    // 名称是行内小元素，之后 React 在开头插入第三个子元素
+    // O React insere um terceiro filho no início do elemento inline.
     const inline = el('span', el('b', '我的'), el('i', '外掛'));
     const grown = para('Agents created by ', inline, ...rest);
-    // 翻译后才变成可编辑的段落
+    // O parágrafo se torna editável somente após a tradução.
     const editable = para('Agents created by ', 'Foo', ...rest);
     await pause();
 
-    assert.equal(google.textContent, '，允許 Google 收集並使用我的互動資料，並遵守 Google 隱私權政策');
-    assert.equal(crumb.textContent, '設定 - 一般');
+    assert.equal(google.textContent, 'permitindo que o Google colete e use meus dados de interações, conforme a Política de privacidade');
+    assert.equal(crumb.textContent, 'Configurações - Geral');
 
     assert.equal(reused.textContent, '設定乙');
     reused.firstChild.data = '甲';
     await pause();
     assert.equal(reused.textContent, '甲 乙');
-    // 用户内容之后刚好等于旧译文：不再当作本套件的译文，两侧都是用户的中文，空白不动
+    // Um texto digitado igual a uma tradução antiga continua sendo conteúdo do usuário.
     reused.firstChild.data = '設定';
     await pause();
     assert.equal(reused.textContent, '設定 乙');
@@ -168,7 +177,7 @@ test('CJK spacing keeps the space beside Latin or symbols, ignores reused nodes,
     await pause();
     assert.equal(editable.textContent, '由 我的 ' + tail);
 
-    // 紧邻空白的元素开头有大量空文字节点（例如串流回复）：每次变动只看有限个邻居
+    // A quantidade de vizinhos lidos deve ser limitada mesmo com muitos nós vazios.
     const nodeTypeDesc = Object.getOwnPropertyDescriptor(win.Node.prototype, 'nodeType');
     const countReads = async fillers => {
         const reply = el('div');
@@ -188,7 +197,7 @@ test('CJK spacing keeps the space beside Latin or symbols, ignores reused nodes,
     };
     const few = await countReads(0);
     const many = await countReads(1000);
-    assert.ok(many - few < 200, `nodeType 讀取次數：沒有空節點 ${few}、1000 個空節點 ${many}`);
+    assert.ok(many - few < 200, `Leituras de nodeType: ${few} sem nós vazios e ${many} com 1000 nós vazios`);
 });
 
 test('icon fallbacks handle blank text, host label removal and reused text nodes; capitalized names stay translatable and a moved source ellipsis keeps its form', async t => {
@@ -197,9 +206,9 @@ test('icon fallbacks handle blank text, host label removal and reused text nodes
     const win = dom.window;
     const doc = win.document;
     const pause = settle;
-    // 停用启动后 100ms～6s 的多阶段全文扫描：慢机器上扫描落在两次断言之间，会改变刻意构造的多文字节点图标宿主等结果
+    // Evita varreduras agendadas que alterem o ícone entre as asserções.
     win.setTimeout = () => 0;
-    win.eval(loadRuntime({ traditional: true }));
+    win.eval(loadRuntime(cjkFixture));
     const add = html => { const el = doc.createElement('div'); el.innerHTML = html; doc.body.append(el); return el; };
     const textOf = el => Array.from(el.childNodes).find(n => n.nodeType === win.Node.TEXT_NODE);
 
@@ -211,14 +220,14 @@ test('icon fallbacks handle blank text, host label removal and reused text nodes
     const attrs = add('<button title="Keep: My Project">a</button><button aria-label="Label for Foo…">b</button>');
     await pause();
 
-    // 图标文字改成空白：补画的 SVG 要移除，不能被空白判断提早挡下
+    // O SVG é removido quando o nome do ícone vira um espaço em branco.
     const blankHost = blank.firstChild;
     assert.equal(blankHost.querySelectorAll('svg').length, 1);
     textOf(blankHost).data = ' ';
     await pause();
     assert.equal(blankHost.querySelectorAll('svg').length, 0);
 
-    // 宿主另有名称时 SVG 隐藏；React 拿掉宿主的名称后，改由 SVG 带图标名称
+    // O nome acessível passa ao SVG quando o elemento perde seu próprio rótulo.
     const labelledHost = labelled.querySelector('.google-symbols');
     const labelledSvg = labelledHost.querySelector('svg');
     assert.equal(labelledSvg.getAttribute('aria-hidden'), 'true');
@@ -228,7 +237,7 @@ test('icon fallbacks handle blank text, host label removal and reused text nodes
     assert.equal(labelledSvg.getAttribute('role'), 'img');
     assert.ok(labelledSvg.getAttribute('aria-label'));
 
-    // 曾显示「由 」的文字节点被重用为图标：之后邻近内容改变，也不得把「由 」写回 SVG 旁
+    // Reutilizar o prefixo como ícone deve invalidar o texto salvo para espaçamento.
     const prefix = sentence.firstChild;
     assert.equal(prefix.data, '由');
     sentence.className = 'google-symbols';
@@ -239,11 +248,11 @@ test('icon fallbacks handle blank text, host label removal and reused text nodes
     await pause();
     assert.equal(prefix.data, '');
 
-    // 大写开头的是名称，不是英文词组：照常套用规则
+    // Um nome próprio continua elegível para as regras de atributos.
     const [keep, labelFor] = attrs.querySelectorAll('button');
-    assert.equal(keep.getAttribute('title'), '保留：My Project');
-    // 规则调整语序后，原文结尾的「…」落在译文中间，仍维持原文的写法
-    assert.equal(labelFor.getAttribute('aria-label'), 'Foo… 的標籤');
+    assert.equal(keep.getAttribute('title'), 'Manter: My Project');
+    // As reticências da origem preservam sua forma na tradução.
+    assert.equal(labelFor.getAttribute('aria-label'), 'Rótulo para Foo…');
 });
 
 test('dictionary fragments drop built-in edge spaces next to Chinese names, restore them when React swaps the name, and leave user-chosen names untranslated', async t => {
@@ -252,20 +261,20 @@ test('dictionary fragments drop built-in edge spaces next to Chinese names, rest
     const win = dom.window;
     const doc = win.document;
     const pause = settle;
-    // 停用启动后 100ms～6s 的多阶段全文扫描：慢机器上扫描落在两次断言之间，会改变刻意构造的多文字节点图标宿主等结果
+    // Evita varreduras agendadas entre a tradução inicial e a troca do nome.
     win.setTimeout = () => 0;
-    win.eval(loadRuntime({ traditional: true }));
-    // v2.35.1 声明权限对话框的实际切法：每段字符串是独立文字节点，名称是第 2 个节点
+    win.eval(loadRuntime(cjkFixture));
+    // O nome ocupa o segundo nó de texto, como no diálogo real.
     const sentence = name => {
         const p = doc.createElement('p');
-        for (const t of ['Agents created by ', name, ' run in a dedicated', ' ', 'workspace', ' with its own permissions, which you can change anytime in the ', 'workspace', ' settings page.']) p.append(t);
+        for (const t of ['Agents created by ', name, ' run in a dedicated', ' ', 'Test workspace']) p.append(t);
         doc.body.append(p);
         return p;
     };
-    const tail = '建立的代理執行於專用的工作區中並擁有獨立權限，您可以隨時在工作區設定頁面中變更。';
+    const tail = '建立於工作區';
     const cjk = sentence('自動化任務');
     const latin = sentence('Foo Plugin');
-    // 名称是用户取的：刚好和字典词条相同（Settings）也不翻译
+    // O nome escolhido pelo usuário pode coincidir com uma chave do dicionário.
     const dictionaryName = sentence('Settings');
     await pause();
     assert.equal(cjk.textContent, '由自動化任務' + tail);
@@ -279,17 +288,17 @@ test('dictionary fragments drop built-in edge spaces next to Chinese names, rest
     assert.equal(latin.textContent, '由我的外掛' + tail);
 });
 
-test('SC mode: automation sentence fragments drop edge spaces next to Chinese names, keep user-chosen names, and icon names stay untranslated', async t => {
+test('pt-BR: automation sentence fragments keep spaces next to Chinese names, keep user-chosen names, and icon names stay untranslated', async t => {
     const dom = createDom('<!doctype html><html><body></body></html>');
     t.after(() => dom.window.close());
     const win = dom.window;
     const doc = win.document;
-    // 停用启动后 100ms～6s 的多阶段全文扫描：慢机器上扫描落在两次断言之间，会改变刻意构造的多文字节点图标宿主等结果
+    // Desativa as varreduras agendadas para observar apenas a troca de nome.
     win.setTimeout = () => 0;
     win.eval(loadRuntime());
-    // v2.35.1 自动化智能体权限说明的实际切法：名称是独立文字节点
+    // O diálogo de automação mantém o nome em um nó de texto independente.
     const rest = [' run in a dedicated', ' ', 'workspace', ' with its own permissions, which you can change anytime in the ', 'workspace', ' settings page.'];
-    const tail = '创建的智能体运行在专用的工作区中并拥有独立权限，您可以随时在工作区设置页面中更改。';
+    const tail = ' são executados em um espaço de trabalho dedicado com permissões próprias, que você pode alterar a qualquer momento nas configurações do espaço de trabalho.';
     const sentence = name => { const p = doc.createElement('p'); for (const s of ['Agents created by ', name, ...rest]) p.append(s); doc.body.append(p); return p; };
     const cjk = sentence('我的插件');
     const latin = sentence('Foo Plugin');
@@ -299,17 +308,17 @@ test('SC mode: automation sentence fragments drop edge spaces next to Chinese na
     doc.body.append(icons);
     await settle();
 
-    assert.equal(cjk.textContent, '由我的插件' + tail);
-    assert.equal(latin.textContent, '由 Foo Plugin ' + tail);
-    // 名称由用户命名：刚好与词典词条相同也不翻译
-    assert.equal(dictName.textContent, '由 Settings ' + tail);
+    assert.equal(cjk.textContent, 'Os agentes criados por 我的插件' + tail);
+    assert.equal(latin.textContent, 'Os agentes criados por Foo Plugin' + tail);
+    // Preserva nomes escolhidos pelo usuário que também são chaves do dicionário.
+    assert.equal(dictName.textContent, 'Os agentes criados por Settings' + tail);
     assert.equal(icons.querySelectorAll('svg[data-ag-icon-fallback="comment"]').length, 1);
     assert.equal(icons.textContent, 'settings');
 
-    // React 换掉名称：空白依新名称重新判断
+    // O React troca os nomes sem recriar os elementos.
     cjk.childNodes[1].data = 'Foo Plugin';
     latin.childNodes[1].data = '我的插件';
     await settle();
-    assert.equal(cjk.textContent, '由 Foo Plugin ' + tail);
-    assert.equal(latin.textContent, '由我的插件' + tail);
+    assert.equal(cjk.textContent, 'Os agentes criados por Foo Plugin' + tail);
+    assert.equal(latin.textContent, 'Os agentes criados por 我的插件' + tail);
 });

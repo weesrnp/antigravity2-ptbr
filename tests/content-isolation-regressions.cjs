@@ -4,11 +4,11 @@ const { createDom, loadRuntime } = require('./helpers/runtime-loader.cjs');
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 35));
 
-async function fixture(t, html, beforeInject) {
+async function fixture(t, html, beforeInject, runtimeOptions) {
     const dom = createDom(html);
     t.after(() => dom.window.close());
     beforeInject?.(dom.window);
-    dom.window.eval(loadRuntime());
+    dom.window.eval(loadRuntime(runtimeOptions));
     await settle();
     return dom.window;
 }
@@ -16,8 +16,9 @@ async function fixture(t, html, beforeInject) {
 test('File Viewer isolation survives translating its accessible name', async t => {
     const w = await fixture(t, '<div aria-label="File Viewer"><span id="file">Settings</span></div><button id="ui">Settings</button>');
     assert.equal(w.document.querySelector('#file').textContent, 'Settings');
-    assert.equal(w.document.querySelector('#ui').textContent, '设置');
+    assert.equal(w.document.querySelector('#ui').textContent, 'Configurações');
     const file = w.document.querySelector('#file');
+    file.parentElement.setAttribute('aria-label', 'Visualizador de arquivos');
     file.textContent = 'Knowledge';
     await settle();
     assert.equal(file.textContent, 'Knowledge', 'subsequent mutations inside the file viewer must stay isolated');
@@ -29,7 +30,7 @@ test('textarea initial value and defaultValue are preserved while unfocused', as
     assert.equal(draft.value, 'Settings');
     assert.equal(draft.defaultValue, 'Settings');
     assert.equal(draft.textContent, 'Settings');
-    assert.equal(w.document.querySelector('button').textContent, '设置');
+    assert.equal(w.document.querySelector('button').textContent, 'Configurações');
 });
 
 test('textarea dirty value and focused value survive initial and subsequent translation', async t => {
@@ -82,7 +83,7 @@ test('user messages, AI responses, code and URI-marked previews remain isolated'
     ]) {
         assert.equal(w.document.getElementById(id).textContent, expected, id);
     }
-    assert.equal(w.document.querySelector('#ui').textContent, '设置');
+    assert.equal(w.document.querySelector('#ui').textContent, 'Configurações');
 });
 
 test('protected shadow hosts keep initial and dynamic descendants untouched', async t => {
@@ -132,10 +133,10 @@ test('input and textarea placeholders and titles are translated while values rem
     const w = await fixture(t, '<input id="search" placeholder="Search tasks..." title="Search tasks..." value="Settings"><textarea id="draft" placeholder="Search conversations...">Settings</textarea>');
     const search = w.document.querySelector('#search');
     const draft = w.document.querySelector('#draft');
-    assert.equal(search.getAttribute('placeholder'), '搜索任务...');
-    assert.equal(search.getAttribute('title'), '搜索任务...');
+    assert.equal(search.getAttribute('placeholder'), 'Pesquisar tarefas...');
+    assert.equal(search.getAttribute('title'), 'Pesquisar tarefas...');
     assert.equal(search.value, 'Settings');
-    assert.equal(draft.getAttribute('placeholder'), '搜索会话...');
+    assert.equal(draft.getAttribute('placeholder'), 'Pesquisar conversas...');
     assert.equal(draft.value, 'Settings');
 });
 
@@ -153,24 +154,24 @@ test('dynamic permission choices translate around commands without altering payl
         window.document.getElementById('proj').textContent = `Yes, and always allow ${cmd} in this project`;
         window.document.getElementById('unscoped').textContent = `Yes, and always allow echo run  in this conversation`;
     });
-    assert.equal(w.document.getElementById('title').textContent, '是否允许在沙箱外运行此命令？');
-    assert.equal(w.document.getElementById('conv').textContent, `是，且在此会话中始终允许运行 ${cmd}`);
-    assert.equal(w.document.getElementById('proj').textContent, `是，且在此项目中始终允许运行 ${cmd}`);
-    assert.equal(w.document.getElementById('unscoped').textContent, '是，且始终允许运行 echo run  in this conversation');
-    assert.equal(w.document.getElementById('static-conv').textContent, '是，且在此会话中始终允许');
+    assert.equal(w.document.getElementById('title').textContent, 'Permitir a execução deste comando fora do sandbox?');
+    assert.equal(w.document.getElementById('conv').textContent, `Sim, e sempre permitir executar ${cmd} nesta conversa`);
+    assert.equal(w.document.getElementById('proj').textContent, `Sim, e sempre permitir executar ${cmd} neste projeto`);
+    assert.equal(w.document.getElementById('unscoped').textContent, 'Sim, e sempre permitir executar echo run  in this conversation');
+    assert.equal(w.document.getElementById('static-conv').textContent, 'Sim, e sempre permitir nesta conversa');
     assert.equal(w.document.getElementById('code').textContent, "Yes, and always allow 'command'");
 });
 
 test('permission write-in translates reject label and placeholder while preserving input value', async t => {
     const w = await fixture(t, '<label><input type="radio" value="__write_in__"><div><span id="reject">No</span><textarea id="answer" data-testid="ask-question-writein" placeholder="(tell the agent what to do instead)">No</textarea></div></label><span id="other">No</span>');
     const answer = w.document.getElementById('answer');
-    assert.equal(w.document.getElementById('reject').textContent, '否');
-    assert.equal(answer.getAttribute('placeholder'), '（告诉智能体改做什么）');
+    assert.equal(w.document.getElementById('reject').textContent, 'Não');
+    assert.equal(answer.getAttribute('placeholder'), '(diga ao agente o que fazer)');
     assert.equal(answer.value, 'No');
     assert.equal(w.document.getElementById('other').textContent, 'No');
 });
 
-test('Worked for / Thought for progress headers translate trailing update counts in SC and TC', async t => {
+test('Worked for / Thought for progress headers translate trailing update counts in pt-BR', async t => {
     const html = `
       <button id="worked-combined">Worked for 3m · 1 update</button>
       <button id="thought-combined">Thought for 12s · 4 updates</button>
@@ -178,19 +179,10 @@ test('Worked for / Thought for progress headers translate trailing update counts
       <span id="standalone-update">2 updates</span>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('worked-combined').textContent, '已工作 3 分钟 · 1 项更新');
-    assert.equal(w.document.getElementById('thought-combined').textContent, '已思考 12 秒 · 4 项更新');
-    assert.equal(w.document.getElementById('split-header').textContent, '已工作 3 分钟 · 1 项更新');
-    assert.equal(w.document.getElementById('standalone-update').textContent, '2 项更新');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('worked-combined').textContent, '已工作 3 分鐘 · 1 項更新');
-    assert.equal(domTw.window.document.getElementById('thought-combined').textContent, '已思考 12 秒 · 4 項更新');
-    assert.equal(domTw.window.document.getElementById('split-header').textContent, '已工作 3 分鐘 · 1 項更新');
-    assert.equal(domTw.window.document.getElementById('standalone-update').textContent, '2 項更新');
+    assert.equal(w.document.getElementById('worked-combined').textContent, 'Trabalhou por 3 min · 1 atualização');
+    assert.equal(w.document.getElementById('thought-combined').textContent, 'Raciocinou por 12 s · 4 atualizações');
+    assert.equal(w.document.getElementById('split-header').textContent, 'Trabalhou por 3 min · 1 atualização');
+    assert.equal(w.document.getElementById('standalone-update').textContent, '2 atualizações');
 });
 
 test('Swarm sidecar UI translates chrome, onboarding, overview cards, graph replay, legend and filters while isolating board messages and roster IDs', async t => {
@@ -198,7 +190,7 @@ test('Swarm sidecar UI translates chrome, onboarding, overview cards, graph repl
       <div id="board" data-testid="swarm-board">
         <header class="header">
           <div class="header-row">
-            <h1 id="swarm-title" data-testid="swarm-title">PPT正式汇报四稿深析与技能学习机制</h1>
+            <h1 id="swarm-title" data-testid="swarm-title">Revisão das quatro versões da apresentação</h1>
             <span id="live" title="Updates automatically" data-testid="swarm-live"><span id="live-label">Live</span></span>
           </div>
           <nav class="tabs" aria-label="Swarm views" data-testid="swarm-tabs">
@@ -280,50 +272,50 @@ test('Swarm sidecar UI translates chrome, onboarding, overview cards, graph repl
     `;
     const w = await fixture(t, swarmHtml);
 
-    assert.equal(w.document.getElementById('live').getAttribute('title'), '自动更新');
-    assert.equal(w.document.getElementById('live-label').textContent, '实时');
-    assert.equal(w.document.getElementById('tab-ov').textContent, '概览');
-    assert.equal(w.document.getElementById('tab-feed').textContent, '看板10');
-    assert.equal(w.document.getElementById('tab-mem').textContent, '成员6');
-    assert.equal(w.document.getElementById('tab-graph').textContent, '关系图');
-    assert.equal(w.document.getElementById('tab-raw').textContent, '原始数据');
-    assert.equal(w.document.getElementById('onb-title').textContent, '你的 Swarm 正在启动');
-    assert.equal(w.document.getElementById('ov-progt').textContent, '3 / 10 项任务已完成');
-    assert.equal(w.document.getElementById('ov-blocked').textContent, '受阻');
-    assert.equal(w.document.getElementById('ov-dot').getAttribute('aria-label'), '排队中');
-    assert.equal(w.document.getElementById('ov-quota').textContent, '@worker-2 配额已耗尽 — Rate limit exceeded');
-    assert.equal(w.document.getElementById('ov-notice').textContent, '解说员 (narrator-1) 已停止。可让协调器新增一个 (@narrator-1)。');
-    assert.equal(w.document.getElementById('ov-ack').textContent, '上次变更：“#42”');
-    assert.equal(w.document.getElementById('f-search').getAttribute('placeholder'), '搜索');
-    assert.equal(w.document.getElementById('f-search').getAttribute('aria-label'), '搜索消息');
-    assert.equal(w.document.getElementById('f-toggle').getAttribute('title'), '筛选');
-    assert.equal(w.document.getElementById('f-agent').options[0].textContent, '来自任何人');
-    assert.equal(w.document.getElementById('f-agent').options[1].textContent, '来自 coordinator');
+    assert.equal(w.document.getElementById('live').getAttribute('title'), 'Atualiza automaticamente');
+    assert.equal(w.document.getElementById('live-label').textContent, 'Ao vivo');
+    assert.equal(w.document.getElementById('tab-ov').textContent, 'Visão geral');
+    assert.equal(w.document.getElementById('tab-feed').textContent, 'Quadro10');
+    assert.equal(w.document.getElementById('tab-mem').textContent, 'Membros6');
+    assert.equal(w.document.getElementById('tab-graph').textContent, 'Grafo');
+    assert.equal(w.document.getElementById('tab-raw').textContent, 'Bruto');
+    assert.equal(w.document.getElementById('onb-title').textContent, 'Seu Swarm está iniciando');
+    assert.equal(w.document.getElementById('ov-progt').textContent, '3 / 10 tarefas concluídas');
+    assert.equal(w.document.getElementById('ov-blocked').textContent, 'Bloqueado');
+    assert.equal(w.document.getElementById('ov-dot').getAttribute('aria-label'), 'na fila');
+    assert.equal(w.document.getElementById('ov-quota').textContent, '@worker-2 ficou sem cota — Rate limit exceeded');
+    assert.equal(w.document.getElementById('ov-notice').textContent, 'O narrador (narrator-1) foi encerrado. Peça ao coordenador para adicionar um novo (@narrator-1).');
+    assert.equal(w.document.getElementById('ov-ack').textContent, 'Última alteração: "#42"');
+    assert.equal(w.document.getElementById('f-search').getAttribute('placeholder'), 'Pesquisar');
+    assert.equal(w.document.getElementById('f-search').getAttribute('aria-label'), 'Pesquisar publicações');
+    assert.equal(w.document.getElementById('f-toggle').getAttribute('title'), 'Filtros');
+    assert.equal(w.document.getElementById('f-agent').options[0].textContent, 'De qualquer pessoa');
+    assert.equal(w.document.getElementById('f-agent').options[1].textContent, 'De coordinator');
     assert.equal(w.document.getElementById('f-agent').options[1].value, 'coordinator');
-    assert.equal(w.document.getElementById('f-mention').options[0].textContent, '发给任何人');
-    assert.equal(w.document.getElementById('f-mention').options[1].textContent, '未提及任何人');
-    assert.equal(w.document.getElementById('f-mention').options[2].textContent, '发给 @all');
-    assert.equal(w.document.getElementById('f-mention').options[3].textContent, '发给 critic-architect');
-    assert.equal(w.document.getElementById('chip-coord').getAttribute('title'), 'coordinator · 协调器 · 活跃 · 3 条消息\n点击在看板中隐藏');
-    assert.equal(w.document.querySelector('#chip-coord .chip-name').textContent, 'coordinator（你）');
-    assert.equal(w.document.getElementById('chip-idle').getAttribute('title'), 'worker-2：暂无消息');
-    assert.equal(w.document.getElementById('unread-div').textContent, '新消息');
-    assert.equal(w.document.getElementById('replay-label').textContent, '10 / 10 · #10 于 9:00 (+15 分钟 25 秒)');
+    assert.equal(w.document.getElementById('f-mention').options[0].textContent, 'Para qualquer pessoa');
+    assert.equal(w.document.getElementById('f-mention').options[1].textContent, 'Para ninguém');
+    assert.equal(w.document.getElementById('f-mention').options[2].textContent, 'Para @all');
+    assert.equal(w.document.getElementById('f-mention').options[3].textContent, 'Para critic-architect');
+    assert.equal(w.document.getElementById('chip-coord').getAttribute('title'), 'coordinator · Coordenador · Ativo · 3 publicações\nClique para ocultar do quadro');
+    assert.equal(w.document.querySelector('#chip-coord .chip-name').textContent, 'coordinator (você)');
+    assert.equal(w.document.getElementById('chip-idle').getAttribute('title'), 'worker-2: Nenhuma publicação ainda');
+    assert.equal(w.document.getElementById('unread-div').textContent, 'Novas mensagens');
+    assert.equal(w.document.getElementById('replay-label').textContent, '10 / 10 · #10 às 9:00 (+15 min 25 s)');
     w.document.getElementById('replay-label').innerHTML = '<b>10 posts</b> over 15m 25s';
     await settle();
-    assert.equal(w.document.getElementById('replay-label').textContent, '10 条消息 · 历时 15 分钟 25 秒');
-    assert.equal(w.document.getElementById('replay-timing').options[0].textContent, '匀速回放');
-    assert.equal(w.document.getElementById('replay-timing').options[1].textContent, '按真实时间间隔');
+    assert.equal(w.document.getElementById('replay-label').textContent, '10 publicações ao longo de 15 min 25 s');
+    assert.equal(w.document.getElementById('replay-timing').options[0].textContent, 'Ritmo uniforme');
+    assert.equal(w.document.getElementById('replay-timing').options[1].textContent, 'Intervalos em tempo real');
     assert.equal(w.document.getElementById('replay-timing').value, 'even');
-    assert.equal(w.document.getElementById('edge-tip').textContent, 'coordinator → critic-architect：5 次直接提及，2 次通过 @all');
-    assert.equal(w.document.getElementById('node-tip').textContent, 'coordinator · 协调器 · 活跃 · 5 步 · 3 条消息\n点击打开会话');
+    assert.equal(w.document.getElementById('edge-tip').textContent, 'coordinator → critic-architect: 5 diretas, 2 via @all');
+    assert.equal(w.document.getElementById('node-tip').textContent, 'coordinator · Coordenador · Ativo · 5 etapas · 3 publicações\nClique para abrir a conversa');
     assert.equal(w.document.getElementById('node-coord').textContent, 'coordinator');
-    assert.equal(w.document.getElementById('lg-1').textContent, '@提及（线宽代表次数）');
-    assert.equal(w.document.getElementById('lg-2').textContent, '通过 @all 广播');
-    assert.equal(w.document.getElementById('lg-3').textContent, '未 @提及他人的发言');
-    assert.equal(w.document.getElementById('lg-4').textContent, '@all 广播消息（开启“展开 @all”时连线）');
+    assert.equal(w.document.getElementById('lg-1').textContent, '@menção, largura = quantidade');
+    assert.equal(w.document.getElementById('lg-2').textContent, 'via @all');
+    assert.equal(w.document.getElementById('lg-3').textContent, 'publicado sem menção');
+    assert.equal(w.document.getElementById('lg-4').textContent, 'Publicações @all, desenhadas por Expandir @all');
     assert.equal(w.document.getElementById('raw-path').textContent, '/Users/demo/board.jsonl');
-    assert.equal(w.document.getElementById('raw-size').textContent, '· 4.2 KB · 10 行');
+    assert.equal(w.document.getElementById('raw-size').textContent, '· 4.2 KB · 10 linhas');
     assert.equal(w.document.getElementById('raw').textContent, '{"agent":"coordinator","text":"Settings"}');
     assert.equal(w.document.getElementById('post-body').textContent, '@critic-architect Settings Overview Board Live Graph');
     assert.equal(w.document.getElementById('sys-msg').textContent, 'created #design — Overview Board');
@@ -335,27 +327,9 @@ test('Swarm sidecar UI translates chrome, onboarding, overview cards, graph repl
     assert.equal(nonSwarm.document.getElementById('plain-board').textContent, 'Board');
     assert.equal(nonSwarm.document.getElementById('plain-graph').textContent, 'Graph');
     assert.equal(nonSwarm.document.getElementById('plain-raw').textContent, 'Raw');
-
-    const domTw = createDom(swarmHtml);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('tab-graph').textContent, '關係圖');
-    assert.equal(domTw.window.document.getElementById('tab-raw').textContent, '原始資料');
-    assert.equal(domTw.window.document.getElementById('ov-progt').textContent, '3 / 10 項任務已完成');
-    assert.equal(domTw.window.document.getElementById('ov-blocked').textContent, '受阻');
-    assert.equal(domTw.window.document.getElementById('ov-dot').getAttribute('aria-label'), '排隊中');
-    assert.equal(domTw.window.document.getElementById('ov-quota').textContent, '@worker-2 配額已耗盡 — Rate limit exceeded');
-    assert.equal(domTw.window.document.getElementById('ov-notice').textContent, '解說員 (narrator-1) 已停止。可請協調器新增一個 (@narrator-1)。');
-    assert.equal(domTw.window.document.getElementById('ov-ack').textContent, '上次變更：「#42」');
-    assert.equal(domTw.window.document.getElementById('chip-idle').getAttribute('title'), 'worker-2：尚無訊息');
-    assert.equal(domTw.window.document.getElementById('unread-div').textContent, '新訊息');
-    assert.equal(domTw.window.document.getElementById('replay-label').textContent, '10 / 10 · #10 於 9:00 (+15 分鐘 25 秒)');
-    assert.equal(domTw.window.document.getElementById('replay-timing').options[0].textContent, '等速重播');
-    assert.equal(domTw.window.document.getElementById('lg-4').textContent, '@all 廣播訊息（開啟「展開 @all」時連線）');
 });
 
-test('subagent incoming message header and input placeholder translate in SC and TC', async t => {
+test('subagent incoming message header and input placeholder translate in pt-BR', async t => {
     const html = `
       <div>
         <button id="incoming-parent">Message from Parent Agent</button>
@@ -365,18 +339,10 @@ test('subagent incoming message header and input placeholder translate in SC and
       </div>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('incoming-parent').textContent, '来自父级智能体的消息');
-    assert.equal(w.document.getElementById('incoming-role').textContent, '来自 Codebase Researcher 的消息');
-    assert.equal(w.document.getElementById('placeholder-full').textContent, '向子代理发送消息，使用 @ 提及，/ 执行操作');
-    assert.equal(w.document.getElementById('placeholder-short').textContent, '向子代理发送消息，使用 @ 提及');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('incoming-parent').textContent, '來自父級代理的訊息');
-    assert.equal(domTw.window.document.getElementById('placeholder-full').textContent, '向子代理傳送訊息，使用 @ 提及，/ 執行操作');
-    assert.equal(domTw.window.document.getElementById('placeholder-short').textContent, '向子代理傳送訊息，使用 @ 提及');
+    assert.equal(w.document.getElementById('incoming-parent').textContent, 'Mensagem de Agente pai');
+    assert.equal(w.document.getElementById('incoming-role').textContent, 'Mensagem de Codebase Researcher');
+    assert.equal(w.document.getElementById('placeholder-full').textContent, 'Envie uma mensagem ao subagente, @ para mencionar, / para ações');
+    assert.equal(w.document.getElementById('placeholder-short').textContent, 'Envie uma mensagem ao subagente, @ para mencionar');
 });
 
 test('NUX onboarding split TextNodes and post-onboarding welcome tip translate without global single-word pollution', async t => {
@@ -396,15 +362,15 @@ test('NUX onboarding split TextNodes and post-onboarding welcome tip translate w
       </div>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('nux-card1-split').textContent, '从设置与市场中自定义您在智能体、插件及产品上的各项体验。我们不会向您展示广告，也不会让广告主影响 Antigravity 所说的内容。');
-    assert.equal(w.document.getElementById('nux-card3').textContent, 'Antigravity 的智能体功能强大，可帮助您比以往更好、更快地完成更多工作，但仍请务必核验智能体执行的操作。');
-    assert.equal(w.document.getElementById('nux-terms-title').textContent, '帮助改进 Antigravity。');
-    assert.equal(w.document.getElementById('nux-terms-desc').textContent, '允许 Google 收集并使用您的交互数据，但须遵守Google Antigravity服务条款以及Google 隐私政策。您可以随时在设置中控制此选项。');
-    assert.equal(w.document.getElementById('nux-enterprise').textContent, '对于您的计划，Antigravity不会收集您的任何提示词、内容或模型响应，但仍会收集一般使用模式（例如功能采用率、活跃用户数）。');
-    assert.equal(w.document.getElementById('nux-analytics').textContent, 'Antigravity 不会收集您的任何提示词、内容或模型回复，但会收集功能采用率与活跃用户数等常规使用模式（“产品分析”）。遥测数据将按照 Google 隐私政策处理。');
-    assert.equal(w.document.querySelector('li').textContent, '隐私声明（不含产品分析数据）');
-    assert.equal(w.document.getElementById('nux-news').textContent, '订阅关于以下内容的新闻通讯、技巧提示及其他通知：Antigravity。');
-    assert.equal(w.document.getElementById('welcome-tip').textContent, '提示：按 ⌘⇧A 即可切换至 Gemini 应用。您的智能体会在后台继续运行。');
+    assert.equal(w.document.getElementById('nux-card1-split').textContent, 'Personalize sua experiência no agente, nos plugins e no produto pelas configurações e pelo marketplace. Não exibiremos anúncios nem permitiremos que anunciantes influenciem o que Antigravity diz.');
+    assert.equal(w.document.getElementById('nux-card3').textContent, 'Antigravity conta com agentes poderosos que ajudarão você a realizar muito mais, melhor e mais rápido do que antes, mas lembre-se sempre de verificar as ações realizadas pelo agente.');
+    assert.equal(w.document.getElementById('nux-terms-title').textContent, 'Ajude a melhorar o Antigravity.');
+    assert.equal(w.document.getElementById('nux-terms-desc').textContent, 'Permitir que o Google colete e use os dados das suas interações, sujeito aos Termos de Serviço do Google Antigravity e à Política de Privacidade do Google. Você pode controlar isso nas configurações a qualquer momento.');
+    assert.equal(w.document.getElementById('nux-enterprise').textContent, 'Para seu plano, Antigravity não coleta nenhum dos seus prompts, conteúdos ou respostas do modelo, mas ainda coleta padrões gerais de uso (por exemplo, adoção de recursos e contagem de usuários ativos).');
+    assert.equal(w.document.getElementById('nux-analytics').textContent, 'Antigravity não coleta nenhum dos seus prompts, conteúdos ou respostas do modelo, mas coleta padrões gerais de uso, como adoção de recursos e número de usuários ativos ("Análise de produto"). Os dados de telemetria são tratados conforme a Política de Privacidade do Google.');
+    assert.equal(w.document.querySelector('li').textContent, 'Aviso de privacidade (exceto dados de análise do produto)');
+    assert.equal(w.document.getElementById('nux-news').textContent, 'Receba newsletters, dicas e outras notificações sobre Antigravity.');
+    assert.equal(w.document.getElementById('welcome-tip').textContent, 'Dica: Pressione ⌘⇧A para alternar para o app Gemini. Seus agentes continuam trabalhando em segundo plano.');
     assert.equal(w.document.getElementById('random-says').textContent, 'says.');
 
     const reactCard3 = w.document.createElement('span');
@@ -414,16 +380,7 @@ test('NUX onboarding split TextNodes and post-onboarding welcome tip translate w
     );
     w.document.body.appendChild(reactCard3);
     await settle();
-    assert.equal(reactCard3.textContent, 'Antigravity 的智能体功能强大，可帮助您比以往更好、更快地完成更多工作，但仍请务必核验智能体执行的操作。');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('nux-card1-split').textContent, '從設定與市集中自訂您在代理、外掛程式及產品上的各項體驗。我們不會向您顯示廣告，也不會讓廣告客戶影響 Antigravity 所說的內容。');
-    assert.equal(domTw.window.document.getElementById('nux-card3').textContent, 'Antigravity 的代理功能強大，能協助您比以往更好、更快地完成更多工作，但仍請務必驗證代理執行的操作。');
-    assert.equal(domTw.window.document.getElementById('welcome-tip').textContent, '提示：按 ⌘⇧A 即可切換至 Gemini 應用程式。您的代理會在背景繼續執行。');
-    assert.equal(domTw.window.document.getElementById('random-says').textContent, 'says.');
+    assert.equal(reactCard3.textContent, 'Antigravity conta com agentes poderosos que ajudarão você a realizar muito mais, melhor e mais rápido do que antes, mas lembre-se sempre de verificar as ações realizadas pelo agente.');
 });
 
 test('v2.32.1 SSH, macOS permissions, multi-agent layout, draft capsule and plugin credentials translate without single-word pollution', async t => {
@@ -478,34 +435,34 @@ test('v2.32.1 SSH, macOS permissions, multi-agent layout, draft capsule and plug
     );
     await settle();
 
-    assert.equal(w.document.getElementById('ssh-err-title').textContent, '无法连接到 devbox');
-    assert.equal(w.document.getElementById('ssh-empty').textContent, '在 ~/.ssh/config 中暂未配置主机，请在上方直接输入。');
-    assert.equal(w.document.getElementById('ssh-cfg-title').textContent, 'SSH 配置 (~/.ssh/config)');
-    assert.equal(w.document.getElementById('ssh-hidden').textContent, '3 个已隐藏的主机');
-    assert.equal(w.document.getElementById('ssh-connecting').textContent, '正在连接到 devbox…');
-    assert.equal(w.document.getElementById('perm-badge-miss').textContent, '未授权');
-    assert.equal(w.document.getElementById('perm-badge-ok').textContent, '已授权 ✓');
-    assert.equal(w.document.getElementById('perm-tip').textContent, '点击打开 ↗ 以打开 macOS“隐私与安全性”。');
-    assert.equal(w.document.getElementById('layout-label').textContent, '布局');
-    assert.equal(w.document.getElementById('layout-select').getAttribute('aria-label'), '布局');
-    assert.equal(w.document.getElementById('opt-stage').textContent, '舞台');
-    assert.equal(w.document.getElementById('opt-desktop').textContent, '桌面');
-    assert.equal(w.document.getElementById('opt-grid').textContent, '网格');
-    assert.equal(w.document.getElementById('tile-focus').getAttribute('title'), 'Codebase · worker-1（聚焦此视图）');
-    assert.equal(w.document.getElementById('tile-back').getAttribute('title'), 'Codebase · worker-1（返回全部智能体）');
-    assert.equal(w.document.getElementById('icon-rg').getAttribute('aria-label'), '图标');
-    assert.equal(w.document.getElementById('color-rg').getAttribute('aria-label'), '颜色');
-    assert.equal(w.document.getElementById('draft-btn').getAttribute('aria-label'), '恢复 2 条评论草稿');
-    assert.equal(w.document.getElementById('draft-btn').textContent, '2 条草稿');
-    assert.equal(w.document.getElementById('plugin-creds').textContent, 'GitHub, Linear 的登录信息会随您的账户保存在云端。其他凭据保留在本机上。凭据仅会发送至所列出的域名。');
-    assert.equal(w.document.getElementById('sandbox-warn-two').textContent, '默认 (Default) 和 自动 (Auto) 需要终端沙盒，但此主机不可用。');
-    assert.equal(w.document.getElementById('sandbox-warn-one').textContent, '默认 (Default) 需要终端沙盒，但此主机不可用。');
-    assert.equal(w.document.getElementById('org-managed').textContent, '由您的组织管理');
-    assert.equal(w.document.getElementById('org-managed').getAttribute('title'), '由您的组织管理');
-    assert.equal(w.document.getElementById('msg-ing').textContent, '正在向 Codebase Researcher 发送消息');
-    assert.equal(w.document.getElementById('msg-ed').textContent, '已向 Codebase Researcher 发送消息');
+    assert.equal(w.document.getElementById('ssh-err-title').textContent, 'Não foi possível conectar a devbox');
+    assert.equal(w.document.getElementById('ssh-empty').textContent, 'Ainda não há hosts em ~/.ssh/config. Digite um acima.');
+    assert.equal(w.document.getElementById('ssh-cfg-title').textContent, 'Configuração SSH (~/.ssh/config)');
+    assert.equal(w.document.getElementById('ssh-hidden').textContent, '3 hosts ocultos');
+    assert.equal(w.document.getElementById('ssh-connecting').textContent, 'Conectando a devbox…');
+    assert.equal(w.document.getElementById('perm-badge-miss').textContent, 'Ausente');
+    assert.equal(w.document.getElementById('perm-badge-ok').textContent, 'Concedido ✓');
+    assert.equal(w.document.getElementById('perm-tip').textContent, 'Clique em Abrir ↗ para abrir Privacidade e Segurança do macOS.');
+    assert.equal(w.document.getElementById('layout-label').textContent, 'Layout');
+    assert.equal(w.document.getElementById('layout-select').getAttribute('aria-label'), 'Layout');
+    assert.equal(w.document.getElementById('opt-stage').textContent, 'Palco');
+    assert.equal(w.document.getElementById('opt-desktop').textContent, 'Desktop');
+    assert.equal(w.document.getElementById('opt-grid').textContent, 'Grade');
+    assert.equal(w.document.getElementById('tile-focus').getAttribute('title'), 'Codebase · worker-1 (Focar este bloco)');
+    assert.equal(w.document.getElementById('tile-back').getAttribute('title'), 'Codebase · worker-1 (Voltar para todos os agentes)');
+    assert.equal(w.document.getElementById('icon-rg').getAttribute('aria-label'), 'Ícone');
+    assert.equal(w.document.getElementById('color-rg').getAttribute('aria-label'), 'Cor');
+    assert.equal(w.document.getElementById('draft-btn').getAttribute('aria-label'), 'Retomar 2 rascunhos de comentário');
+    assert.equal(w.document.getElementById('draft-btn').textContent, '2 rascunhos');
+    assert.equal(w.document.getElementById('plugin-creds').textContent, 'Os logins em GitHub, Linear ficam salvos na nuvem com a sua conta. As outras credenciais ficam nesta máquina. As credenciais são enviadas somente aos domínios listados.');
+    assert.equal(w.document.getElementById('sandbox-warn-two').textContent, 'Padrão e Automático precisam do sandbox de terminal, que não está disponível neste host.');
+    assert.equal(w.document.getElementById('sandbox-warn-one').textContent, 'Padrão precisa do sandbox de terminal, que não está disponível neste host.');
+    assert.equal(w.document.getElementById('org-managed').textContent, 'gerenciado pela sua organização');
+    assert.equal(w.document.getElementById('org-managed').getAttribute('title'), 'gerenciado pela sua organização');
+    assert.equal(w.document.getElementById('msg-ing').textContent, 'Enviando mensagem para Codebase Researcher');
+    assert.equal(w.document.getElementById('msg-ed').textContent, 'Mensagem enviada para Codebase Researcher');
     assert.equal(w.document.getElementById('msg-prose').textContent, 'Messaging other services over HTTP requires valid credentials.');
-    assert.equal(w.document.getElementById('save-err').textContent, '保存项目设置失败：Network error');
+    assert.equal(w.document.getElementById('save-err').textContent, 'Falha ao salvar as configurações do projeto: Network error');
 
     assert.equal(w.document.getElementById('plain-click').textContent, 'Click');
     assert.equal(w.document.getElementById('plain-missing').textContent, 'Missing');
@@ -514,31 +471,6 @@ test('v2.32.1 SSH, macOS permissions, multi-agent layout, draft capsule and plug
     assert.equal(w.document.getElementById('plain-design').textContent, 'Design');
     assert.equal(w.document.getElementById('plain-icon').getAttribute('aria-label'), 'Icon');
     assert.equal(w.document.getElementById('plain-color').getAttribute('aria-label'), 'Color');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('perm-badge-miss').textContent, '未授權');
-    assert.equal(domTw.window.document.getElementById('perm-tip').textContent, '按一下開啟 ↗ 以開啟 macOS「隱私權與安全性」。');
-    assert.equal(domTw.window.document.getElementById('layout-label').textContent, '版面配置');
-    assert.equal(domTw.window.document.getElementById('layout-select').getAttribute('aria-label'), '版面配置');
-    assert.equal(domTw.window.document.getElementById('opt-grid').textContent, '網格');
-    assert.equal(domTw.window.document.getElementById('tile-focus').getAttribute('title'), 'Codebase · worker-1（聚焦此窗格）');
-    assert.equal(domTw.window.document.getElementById('icon-rg').getAttribute('aria-label'), '圖示');
-    assert.equal(domTw.window.document.getElementById('color-rg').getAttribute('aria-label'), '顏色');
-    assert.equal(domTw.window.document.getElementById('draft-btn').getAttribute('aria-label'), '恢復 2 則評論草稿');
-    assert.equal(domTw.window.document.getElementById('draft-btn').textContent, '2 則草稿');
-    assert.equal(domTw.window.document.getElementById('plugin-creds').textContent, 'GitHub, Linear 的登入資訊會隨您的帳戶儲存在雲端。其他憑證保留在本機上。憑證僅會傳送至所列出的網域。');
-    assert.equal(domTw.window.document.getElementById('sandbox-warn-two').textContent, '預設 (Default) 與 自動 (Auto) 需要終端機沙箱，但此主機無法使用。');
-    assert.equal(domTw.window.document.getElementById('sandbox-warn-one').textContent, '預設 (Default) 需要終端機沙箱，但此主機無法使用。');
-    assert.equal(domTw.window.document.getElementById('org-managed').textContent, '由您的組織管理');
-    assert.equal(domTw.window.document.getElementById('msg-ing').textContent, '正在傳送訊息給 Codebase Researcher');
-    assert.equal(domTw.window.document.getElementById('msg-ed').textContent, '已傳送訊息給 Codebase Researcher');
-    assert.equal(domTw.window.document.getElementById('save-err').textContent, '儲存專案設定失敗：Network error');
-    assert.equal(domTw.window.document.getElementById('plain-click').textContent, 'Click');
-    assert.equal(domTw.window.document.getElementById('plain-missing').textContent, 'Missing');
-    assert.equal(domTw.window.document.getElementById('plain-design').textContent, 'Design');
 });
 
 test('protected containers isolate attributes and scripts while contextual siblings and duration boundaries hold', async t => {
@@ -571,20 +503,20 @@ test('protected containers isolate attributes and scripts while contextual sibli
     assert.equal(w.document.getElementById('term-span').textContent, 'Settings');
     assert.equal(w.document.getElementById('ai-span').getAttribute('title'), 'Open');
     assert.equal(w.document.getElementById('ai-span').textContent, 'Open');
-    assert.equal(w.document.getElementById('normal-input').getAttribute('placeholder'), '搜索');
+    assert.equal(w.document.getElementById('normal-input').getAttribute('placeholder'), 'Pesquisar');
 
     w.document.getElementById('inline-script').firstChild.nodeValue = 'Settings';
     await settle();
     assert.equal(w.document.getElementById('inline-script').textContent, 'Settings');
 
-    assert.equal(w.document.getElementById('archived-tip').textContent, '在侧边栏中查看已归档项更多菜单中查看。');
-    assert.equal(w.document.getElementById('unsafe-link').textContent, '继续前往 example.com（不安全）');
-    assert.equal(w.document.getElementById('dur-ms').textContent, '已思考 12ms');
-    assert.equal(w.document.getElementById('dur-mo').textContent, '已思考 5mo');
-    assert.equal(w.document.getElementById('dur-m').textContent, '已思考 5 分钟');
+    assert.equal(w.document.getElementById('archived-tip').textContent, 'Ver arquivados no menu Mais da barra lateral');
+    assert.equal(w.document.getElementById('unsafe-link').textContent, 'Continuar para example.com (não seguro)');
+    assert.equal(w.document.getElementById('dur-ms').textContent, 'Raciocinou por 12ms');
+    assert.equal(w.document.getElementById('dur-mo').textContent, 'Raciocinou por 5mo');
+    assert.equal(w.document.getElementById('dur-m').textContent, 'Raciocinou por 5 min');
 });
 
-test('v2.32.2 template literals, voice mic prompts, plugin/skill labels and Best of N external descriptions translate in SC and TC', async t => {
+test('v2.32.2 template literals, voice mic prompts, plugin/skill labels and Best of N external descriptions translate in pt-BR', async t => {
     const html = `
       <div>
         <h2 id="voice-title">Choose Antigravity's Voice</h2>
@@ -605,34 +537,23 @@ test('v2.32.2 template literals, voice mic prompts, plugin/skill labels and Best
       </div>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('voice-title').textContent, '选择 Antigravity 的声音');
-    assert.equal(w.document.getElementById('mic-inline').textContent, '麦克风已被阻止。请在 System Settings 中允许。');
-    assert.equal(w.document.getElementById('mic-split').textContent, '麦克风已被阻止。请在以下位置允许访问：隐私设置。');
-    assert.equal(w.document.getElementById('perm-act').textContent, '智能体需要权限才能对 /tmp/demo 执行操作');
-    assert.equal(w.document.getElementById('dl-block').textContent, '浏览器已阻止下载 report.pdf：智能体浏览器不支持下载此文件类型 (text/html)');
-    assert.equal(w.document.getElementById('nav-block').textContent, '已阻止导航至：“https://example.invalid”');
-    assert.equal(w.document.getElementById('partner-plugins').textContent, '基于 Google 插件构建');
-    assert.equal(w.document.getElementById('open-plugin').textContent, '打开 figma 插件');
-    assert.equal(w.document.getElementById('open-skill').textContent, '打开 my-skill 技能');
-    assert.equal(w.document.getElementById('mcp-cfg').textContent, 'github MCP 服务器需要配置参数后才能启动。');
-    assert.equal(w.document.getElementById('auto-created').textContent, '已创建自动化任务“Daily Sync”。');
-    assert.equal(w.document.getElementById('unfold-btn').getAttribute('title'), '展开第 10-25 行');
-    assert.equal(w.document.getElementById('mic-opt').textContent, '系统默认 (Built-in Mic)');
+    assert.equal(w.document.getElementById('voice-title').textContent, 'Escolher a voz do Antigravity');
+    assert.equal(w.document.getElementById('mic-inline').textContent, 'Microfone bloqueado. Permita em Configurações do sistema.');
+    assert.equal(w.document.getElementById('mic-split').textContent, 'Microfone bloqueado. Permita em Configurações de privacidade.');
+    assert.equal(w.document.getElementById('perm-act').textContent, 'O agente precisa de permissão para agir em /tmp/demo');
+    assert.equal(w.document.getElementById('dl-block').textContent, 'O navegador bloqueou o download de report.pdf: o navegador do agente não baixa este tipo de arquivo (text/html)');
+    assert.equal(w.document.getElementById('nav-block').textContent, 'Navegação bloqueada para: "https://example.invalid"');
+    assert.equal(w.document.getElementById('partner-plugins').textContent, 'Criar com plugins do Google');
+    assert.equal(w.document.getElementById('open-plugin').textContent, 'Abrir o plugin figma');
+    assert.equal(w.document.getElementById('open-skill').textContent, 'Abrir habilidade my-skill');
+    assert.equal(w.document.getElementById('mcp-cfg').textContent, 'O servidor MCP github precisa de parâmetros de configuração antes de poder ser iniciado.');
+    assert.equal(w.document.getElementById('auto-created').textContent, 'Automação criada: "Daily Sync".');
+    assert.equal(w.document.getElementById('unfold-btn').getAttribute('title'), 'Expandir linhas 10-25');
+    assert.equal(w.document.getElementById('mic-opt').textContent, 'Padrão do sistema (Built-in Mic)');
     assert.equal(w.document.getElementById('slash-compact').children[0].textContent, 'compact');
-    assert.equal(w.document.getElementById('slash-compact').children[1].textContent, '立即压缩当前对话（总结历史记录以释放上下文窗口）。');
+    assert.equal(w.document.getElementById('slash-compact').children[1].textContent, 'Compactar a conversa agora (resumir o histórico para liberar a janela de contexto).');
     assert.equal(w.document.getElementById('slash-plan').children[0].textContent, 'plan');
-    assert.equal(w.document.getElementById('slash-plan').children[1].textContent, '在执行任务前仔细制定计划。');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('voice-title').textContent, '選擇 Antigravity 的聲音');
-    assert.equal(domTw.window.document.getElementById('mic-split').textContent, '麥克風已被封鎖。請在以下位置允許存取：隱私權設定。');
-    assert.equal(domTw.window.document.getElementById('partner-plugins').textContent, '以 Google 外掛程式建構');
-    assert.equal(domTw.window.document.getElementById('unfold-btn').getAttribute('title'), '展開第 10-25 行');
-    assert.equal(domTw.window.document.getElementById('slash-compact').children[1].textContent, '立即壓縮目前對話（摘要歷史記錄以釋放上下文視窗）。');
-    assert.equal(domTw.window.document.getElementById('slash-plan').children[1].textContent, '在執行任務前仔細擬定計畫。');
+    assert.equal(w.document.getElementById('slash-plan').children[1].textContent, 'Planejar com cuidado antes de executar uma tarefa.');
 });
 
 test('runtime guards non-DOM sandboxes, preserves restore_page TextNode, and handles See all & mixed Show more', async t => {
@@ -658,18 +579,12 @@ test('runtime guards non-DOM sandboxes, preserves restore_page TextNode, and han
     assert.equal(icon.querySelectorAll('svg[data-ag-icon-fallback="restore_page"]').length, 1);
     assert.equal(textNodes[0].nodeValue, '');
 
-    assert.equal(w.document.getElementById('badge').textContent, 'Show 5');
-    assert.equal(w.document.getElementById('mixed-show').lastChild.nodeValue, ' 个...');
-    assert.equal(w.document.getElementById('see-all').textContent, '显示全部 (5)');
-
-    const domTw = createDom('<button id="see-all">See all (5)</button>');
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('see-all').textContent, '顯示全部 (5)');
+    assert.equal(w.document.getElementById('badge').textContent, 'Mostrar mais 5');
+    assert.equal(w.document.getElementById('mixed-show').lastChild.nodeValue, '...');
+    assert.equal(w.document.getElementById('see-all').textContent, 'Ver tudo (5)');
 });
 
-test('v2.33.0 browsing data, keybinding scheme, bundles, coordinator pickers, permissions and dynamic prompts translate in SC and TC without single-word pollution', async t => {
+test('v2.33.0 browsing data, keybinding scheme, bundles, coordinator pickers, permissions and dynamic prompts translate in pt-BR without single-word pollution', async t => {
     const html = `
       <div>
         <h2 id="browsing-title">Clear Browsing Data?</h2>
@@ -734,60 +649,62 @@ test('v2.33.0 browsing data, keybinding scheme, bundles, coordinator pickers, pe
     `;
 
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('browsing-title').textContent, '清除浏览数据？');
-    assert.equal(w.document.getElementById('browsing-history').textContent, '浏览历史记录');
-    assert.equal(w.document.getElementById('cookies-site').textContent, '按网站管理 Cookie');
-    assert.equal(w.document.getElementById('kb-scheme').textContent, '快捷键方案');
-    assert.equal(w.document.getElementById('browser-agent').textContent, '启用浏览器智能体');
-    assert.equal(w.document.getElementById('add-bundle').textContent, '添加套件');
-    assert.equal(w.document.getElementById('rm-bundle').textContent, '移除套件');
-    assert.equal(w.document.getElementById('insert-main').textContent, '插入到主会话');
-    assert.equal(w.document.getElementById('sq-unarch').textContent, '请先取消归档主会话再插入');
-    assert.equal(w.document.getElementById('cookie-err').textContent, '无法删除以下网站的 Cookie：example.com，请重试。');
-    assert.equal(w.document.getElementById('clearing-site').textContent, '正在清除以下网站的 Cookie 和网站数据：example.com');
-    assert.equal(w.document.getElementById('no-match-split').textContent, '没有匹配“alpha.dev”的网站。');
-    assert.equal(w.document.getElementById('no-match-full').textContent, '没有匹配“beta.dev”的网站。');
-    assert.equal(w.document.getElementById('kb-filter').textContent, '查看实时按键绑定或录制自定义组合键，当前筛选范围为 antigravity. 命令。');
-    assert.equal(w.document.getElementById('signin-remote').textContent, '您正在 devbox-01 上登录。登录状态仅保留在该机器上。');
-    assert.equal(w.document.getElementById('mcp-acc').getAttribute('aria-label'), '此 MCP 服务器使用的账户：work@example.com');
-    assert.equal(w.document.getElementById('go-turn').getAttribute('aria-label'), '跳转到第 3 / 12 轮');
-    assert.equal(w.document.getElementById('plan-steps').getAttribute('aria-label'), '计划，已完成 2 / 5 步');
-    assert.equal(w.document.getElementById('rm-shortcut').getAttribute('aria-label'), '移除 命令面板 的快捷键 Cmd+K');
-    assert.equal(w.document.getElementById('reset-cmd').getAttribute('aria-label'), '将 命令面板 重置为默认值');
-    assert.equal(w.document.getElementById('no-bundles').textContent, '未找到匹配的套件：');
-    assert.equal(w.document.getElementById('no-plugins-q').textContent, '未找到与“lint”匹配的插件');
-    assert.equal(w.document.getElementById('dup-folder').textContent, '文件夹名称重复');
-    assert.equal(w.document.getElementById('dup-rule').textContent, '规则名称重复');
-    assert.equal(w.document.getElementById('dup-wf').textContent, '工作流名称重复');
-    assert.equal(w.document.getElementById('bundle-prefix').textContent, '3 个插件。停用或移除此套件仅会影响由它安装的项目。');
-    assert.equal(w.document.getElementById('export-err').textContent, '导出产物失败');
-    assert.equal(w.document.getElementById('del-ws-err').textContent, '删除工作区失败');
-    assert.equal(w.document.getElementById('gh-lbl').getAttribute('aria-label'), 'GitHub：需要身份验证');
-    assert.equal(w.document.getElementById('ssh-lbl').textContent, 'SSH：devbox-01');
-    assert.equal(w.document.getElementById('see-doc').textContent, '查看 文档：https://example.com');
-    assert.equal(w.document.getElementById('acc-lbl').getAttribute('aria-label'), 'work@example.com 的标签');
-    assert.equal(w.document.getElementById('more-lbl').getAttribute('aria-label'), 'devbox-01 的更多操作');
-    assert.equal(w.document.getElementById('safe-del-ws').textContent, '删除工作区');
+    assert.equal(w.document.getElementById('browsing-title').textContent, 'Limpar dados de navegação?');
+    assert.equal(w.document.getElementById('browsing-history').textContent, 'Histórico de navegação');
+    assert.equal(w.document.getElementById('cookies-site').textContent, 'Cookies por site');
+    assert.equal(w.document.getElementById('kb-scheme').textContent, 'Esquema de atalhos de teclado');
+    assert.equal(w.document.getElementById('browser-agent').textContent, 'Ativar agente de navegador');
+    assert.equal(w.document.getElementById('add-bundle').textContent, 'Adicionar pacote');
+    assert.equal(w.document.getElementById('rm-bundle').textContent, 'Remover pacote');
+    assert.equal(w.document.getElementById('insert-main').textContent, 'Inserir na conversa principal');
+    assert.equal(w.document.getElementById('sq-unarch').textContent, 'Desarquive a conversa principal para inserir');
+    assert.equal(w.document.getElementById('cookie-err').textContent, 'Não foi possível excluir os cookies de example.com. Tente novamente.');
+    assert.equal(w.document.getElementById('clearing-site').textContent, 'Limpando cookies e dados do site de example.com');
+    assert.equal(w.document.getElementById('no-match-split').textContent, 'Nenhum site corresponde a "alpha.dev".');
+    assert.equal(w.document.getElementById('no-match-full').textContent, 'Nenhum site corresponde a "beta.dev".');
+    assert.equal(w.document.getElementById('kb-filter').textContent, 'Inspecione os atalhos ativos ou grave combinações personalizadas filtradas pelo prefixo antigravity. nos comandos.');
+    assert.equal(w.document.getElementById('signin-remote').textContent, 'Você está entrando em devbox-01. Seu login permanece nessa máquina.');
+    assert.equal(w.document.getElementById('mcp-acc').getAttribute('aria-label'), 'Conta usada por este servidor MCP: work@example.com');
+    assert.equal(w.document.getElementById('go-turn').getAttribute('aria-label'), 'Ir para o turno 3 de 12');
+    assert.equal(w.document.getElementById('plan-steps').getAttribute('aria-label'), 'Plano, 2 de 5 etapas concluídas');
+    assert.equal(w.document.getElementById('rm-shortcut').getAttribute('aria-label'), 'Remover atalho Cmd+K para Paleta de comandos');
+    assert.equal(w.document.getElementById('reset-cmd').getAttribute('aria-label'), 'Redefinir Paleta de comandos para o padrão');
+    assert.equal(w.document.getElementById('no-bundles').textContent, 'Nenhum pacote encontrado para:');
+    assert.equal(w.document.getElementById('no-plugins-q').textContent, 'Nenhum plugin encontrado para "lint"');
+    assert.equal(w.document.getElementById('dup-folder').textContent, 'Nome de pasta duplicado');
+    assert.equal(w.document.getElementById('dup-rule').textContent, 'Nome de regra duplicado');
+    assert.equal(w.document.getElementById('dup-wf').textContent, 'Nome de fluxo de trabalho duplicado');
+    assert.equal(w.document.getElementById('bundle-prefix').textContent, '3 plugins. Desativar ou remover o pacote se aplica apenas aos que ele instalou.');
+    assert.equal(w.document.getElementById('export-err').textContent, 'Falha ao exportar o artefato');
+    assert.equal(w.document.getElementById('del-ws-err').textContent, 'Falha ao excluir espaço de trabalho');
+    assert.equal(w.document.getElementById('gh-lbl').getAttribute('aria-label'), 'GitHub: Autenticação necessária');
+    assert.equal(w.document.getElementById('ssh-lbl').textContent, 'SSH: devbox-01');
+    assert.equal(w.document.getElementById('see-doc').textContent, 'Ver Documentação: https://example.com');
+    assert.equal(w.document.getElementById('comment-pg').textContent, 'Comentário na página 2');
+    assert.equal(w.document.getElementById('edit-comment').textContent, 'Editar comentário: fix typo');
+    assert.equal(w.document.getElementById('acc-lbl').getAttribute('aria-label'), 'Rótulo para work@example.com');
+    assert.equal(w.document.getElementById('more-lbl').getAttribute('aria-label'), 'Mais para devbox-01');
+    assert.equal(w.document.getElementById('safe-del-ws').textContent, 'Excluir espaço de trabalho');
     assert.equal(w.document.getElementById('unsafe-del-var').textContent, 'Delete MyCustomVar');
-    assert.equal(w.document.getElementById('meta-init').textContent, '初始化来源');
-    assert.equal(w.document.getElementById('meta-decl').textContent, '声明来源');
+    assert.equal(w.document.getElementById('meta-init').textContent, 'Inicializado com');
+    assert.equal(w.document.getElementById('meta-decl').textContent, 'Declarado por');
     assert.equal(w.document.getElementById('prose-init').textContent, 'Initialized with a custom environment variable for testing.');
-    assert.equal(w.document.getElementById('ico-robot').getAttribute('aria-label'), '机器人');
-    assert.equal(w.document.getElementById('ico-code').getAttribute('aria-label'), '代码');
-    assert.equal(w.document.getElementById('ico-flask').getAttribute('aria-label'), '烧瓶');
-    assert.equal(w.document.getElementById('col-blue').getAttribute('aria-label'), '蓝色');
-    assert.equal(w.document.getElementById('perm-q1').textContent, '是否允许从此网站进行浏览器下载？');
-    assert.equal(w.document.getElementById('perm-q2').textContent, '是否保存规则以始终允许在沙箱外运行此命令？');
-    assert.equal(w.document.getElementById('loc-btn').getAttribute('aria-label'), '智能体运行位置，当前：此电脑');
-    assert.equal(w.document.getElementById('plan-go').textContent, '按实施计划并附带 3 条评论继续执行');
-    assert.equal(w.document.getElementById('upd-prog').textContent, '您有 2 个正在进行的会话。更新将暂时中断它们，更新完成后会自动恢复。');
-    assert.equal(w.document.getElementById('model-gone').textContent, 'Gemini 2.5 Pro 已不再可用，运行时将改用 Gemini 3 Flash。');
-    assert.equal(w.document.getElementById('model-unavail').textContent, '不可用');
+    assert.equal(w.document.getElementById('ico-robot').getAttribute('aria-label'), 'Robô');
+    assert.equal(w.document.getElementById('ico-code').getAttribute('aria-label'), 'Código');
+    assert.equal(w.document.getElementById('ico-flask').getAttribute('aria-label'), 'Frasco');
+    assert.equal(w.document.getElementById('col-blue').getAttribute('aria-label'), 'Azul');
+    assert.equal(w.document.getElementById('perm-q1').textContent, 'Permitir downloads do navegador deste site?');
+    assert.equal(w.document.getElementById('perm-q2').textContent, 'Salvar regra para sempre permitir executar este comando fora do sandbox?');
+    assert.equal(w.document.getElementById('loc-btn').getAttribute('aria-label'), 'Onde o agente executa, atual: Este computador');
+    assert.equal(w.document.getElementById('plan-go').textContent, 'Prosseguir com o plano de implementação e 3 comentários');
+    assert.equal(w.document.getElementById('upd-prog').textContent, 'Você tem 2 conversas em andamento. A atualização vai interrompê-las e elas serão retomadas automaticamente quando a atualização terminar.');
+    assert.equal(w.document.getElementById('model-gone').textContent, 'Gemini 2.5 Pro não está mais disponível. As execuções usam Gemini 3 Flash no lugar.');
+    assert.equal(w.document.getElementById('model-unavail').textContent, 'Indisponível');
     assert.equal(w.document.getElementById('plain-unavail').textContent, 'Unavailable');
-    assert.equal(w.document.getElementById('model-avail-1').textContent, 'Claude 3.7 Sonnet 目前已向 Pro 用户 开放。');
-    assert.equal(w.document.getElementById('model-avail-2').textContent, 'Gemini 2.5 Pro 现已向 Google AI Pro 开放。第三方模型访问权限将自 2026 年 5 月 15 日 起不再提供。');
-    assert.equal(w.document.getElementById('model-dep-only').textContent, 'Claude 3.5 Sonnet 将自 2026 年 6 月 1 日 起不再在您当前的方案中提供');
-    assert.equal(w.document.getElementById('model-dep-3p').textContent, '第三方模型访问权限将自 2026 年 7 月 15 日 起不再在您当前的方案中提供。');
+    assert.equal(w.document.getElementById('model-avail-1').textContent, 'Claude 3.7 Sonnet está disponível atualmente para usuários Pro.');
+    assert.equal(w.document.getElementById('model-avail-2').textContent, 'Gemini 2.5 Pro agora está disponível para Google AI Pro. O acesso a modelos de terceiros deixará de estar disponível a partir de 15 de maio de 2026.');
+    assert.equal(w.document.getElementById('model-dep-only').textContent, 'Claude 3.5 Sonnet deixará de estar disponível no seu plano atual a partir de 1 de junho de 2026');
+    assert.equal(w.document.getElementById('model-dep-3p').textContent, 'O acesso a modelos de terceiros deixará de estar disponível no seu plano atual a partir de 15 de julho de 2026.');
     assert.equal(w.document.getElementById('w-code').textContent, 'Code');
     assert.equal(w.document.getElementById('w-eye').textContent, 'Eye');
     assert.equal(w.document.getElementById('w-hub').textContent, 'Hub');
@@ -795,48 +712,9 @@ test('v2.33.0 browsing data, keybinding scheme, bundles, coordinator pickers, pe
     assert.equal(w.document.getElementById('w-robot').textContent, 'Robot');
     assert.equal(w.document.getElementById('w-flask').textContent, 'Flask');
     assert.equal(w.document.getElementById('plain-radio').getAttribute('aria-label'), 'Code');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('browsing-title').textContent, '清除瀏覽資料？');
-    assert.equal(domTw.window.document.getElementById('browsing-history').textContent, '瀏覽記錄');
-    assert.equal(domTw.window.document.getElementById('cookies-site').textContent, '依網站檢視 Cookie');
-    assert.equal(domTw.window.document.getElementById('kb-scheme').textContent, '快速鍵方案');
-    assert.equal(domTw.window.document.getElementById('browser-agent').textContent, '啟用瀏覽器代理');
-    assert.equal(domTw.window.document.getElementById('add-bundle').textContent, '新增套件');
-    assert.equal(domTw.window.document.getElementById('rm-bundle').textContent, '移除套件');
-    assert.equal(domTw.window.document.getElementById('sq-unarch').textContent, '請先取消封存主對話再插入');
-    assert.equal(domTw.window.document.getElementById('cookie-err').textContent, '無法刪除以下網站的 Cookie：example.com，請重試。');
-    assert.equal(domTw.window.document.getElementById('no-match-split').textContent, '沒有符合「alpha.dev」的網站。');
-    assert.equal(domTw.window.document.getElementById('no-match-full').textContent, '沒有符合「beta.dev」的網站。');
-    assert.equal(domTw.window.document.getElementById('kb-filter').textContent, '檢視即時按鍵繫結或錄製自訂組合鍵，目前篩選範圍為 antigravity. 指令。');
-    assert.equal(domTw.window.document.getElementById('signin-remote').textContent, '您正在 devbox-01 上登入。登入狀態僅保留在該機器上。');
-    assert.equal(domTw.window.document.getElementById('go-turn').getAttribute('aria-label'), '前往第 3 / 12 輪');
-    assert.equal(domTw.window.document.getElementById('plan-steps').getAttribute('aria-label'), '計畫，已完成 2 / 5 步');
-    assert.equal(domTw.window.document.getElementById('rm-shortcut').getAttribute('aria-label'), '移除 命令選擇區 的快速鍵 Cmd+K');
-    assert.equal(domTw.window.document.getElementById('reset-cmd').getAttribute('aria-label'), '將 命令選擇區 重設為預設值');
-    assert.equal(domTw.window.document.getElementById('no-bundles').textContent, '找不到符合以下條件的套件：');
-    assert.equal(domTw.window.document.getElementById('no-plugins-q').textContent, '找不到與「lint」相符的外掛程式');
-    assert.equal(domTw.window.document.getElementById('bundle-prefix').textContent, '3 個外掛程式。停用或移除此套件僅會影響由它安裝的項目。');
-    assert.equal(domTw.window.document.getElementById('comment-pg').textContent, '第 2 頁的評論');
-    assert.equal(domTw.window.document.getElementById('edit-comment').textContent, '編輯評論：fix typo');
-    assert.equal(domTw.window.document.getElementById('export-err').textContent, '匯出成品失敗');
-    assert.equal(domTw.window.document.getElementById('ico-code').getAttribute('aria-label'), '程式碼');
-    assert.equal(domTw.window.document.getElementById('col-blue').getAttribute('aria-label'), '藍色');
-    assert.equal(domTw.window.document.getElementById('perm-q1').textContent, '是否允許從此網站進行瀏覽器下載？');
-    assert.equal(domTw.window.document.getElementById('loc-btn').getAttribute('aria-label'), '代理執行位置，目前：此電腦');
-    assert.equal(domTw.window.document.getElementById('model-unavail').textContent, '無法使用');
-    assert.equal(domTw.window.document.getElementById('plain-unavail').textContent, 'Unavailable');
-    assert.equal(domTw.window.document.getElementById('model-avail-1').textContent, 'Claude 3.7 Sonnet 目前已向 Pro 使用者 開放。');
-    assert.equal(domTw.window.document.getElementById('model-avail-2').textContent, 'Gemini 2.5 Pro 現已向 Google AI Pro 開放。第三方模型存取權限將自 2026 年 5 月 15 日 起不再提供。');
-    assert.equal(domTw.window.document.getElementById('model-dep-only').textContent, 'Claude 3.5 Sonnet 將自 2026 年 6 月 1 日 起不再於您目前的方案中提供');
-    assert.equal(domTw.window.document.getElementById('model-dep-3p').textContent, '第三方模型存取權限將自 2026 年 7 月 15 日 起不再於您目前的方案中提供。');
-    assert.equal(domTw.window.document.getElementById('w-code').textContent, 'Code');
 });
 
-test('v2.34.0 orchestrator settings, sidebar customization, dynamic templates and contextual hints translate in SC and TC', async t => {
+test('v2.34.0 orchestrator settings, sidebar customization, dynamic templates and contextual hints translate in pt-BR', async t => {
     const html = `
       <div>
         <h2 id="orch-title">Orchestrator Settings</h2>
@@ -854,34 +732,20 @@ test('v2.34.0 orchestrator settings, sidebar customization, dynamic templates an
     `;
 
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('orch-title').textContent, '编排器设置');
-    assert.equal(w.document.getElementById('think-eff').textContent, '思考深度');
-    assert.equal(w.document.getElementById('cust-sb').getAttribute('aria-label'), '自定义侧边栏');
-    assert.equal(w.document.getElementById('screen-lock').textContent, '屏幕已锁定：在您解锁前，智能体无法使用此 Mac');
-    assert.equal(w.document.getElementById('disc-err').textContent, '无法断开 GitHub 的连接：network timeout');
-    assert.equal(w.document.getElementById('load-err').textContent, '加载页面 Settings 失败：500');
-    assert.equal(w.document.getElementById('more-opt').getAttribute('aria-label'), 'devbox-01 的更多选项');
-    assert.equal(w.document.getElementById('new-conv').textContent, '打开此 工作区 的新会话界面');
-    assert.equal(w.document.getElementById('send-hint').querySelector('span').textContent, '消息现已改为立即发送。可在');
-    assert.equal(w.document.getElementById('sys-click').querySelector('span').textContent, '在“系统设置”中，点击 ');
-    assert.equal(w.document.getElementById('already-on').querySelector('span').textContent, '已经开启？请选择 ');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('orch-title').textContent, '編排器設定');
-    assert.equal(domTw.window.document.getElementById('cust-sb').getAttribute('aria-label'), '自訂側邊欄');
-    assert.equal(domTw.window.document.getElementById('screen-lock').textContent, '螢幕已鎖定：在您解鎖前，代理無法使用此 Mac');
-    assert.equal(domTw.window.document.getElementById('disc-err').textContent, '無法中斷 GitHub 的連線：network timeout');
-    assert.equal(domTw.window.document.getElementById('load-err').textContent, '載入頁面 Settings 失敗：500');
-    assert.equal(domTw.window.document.getElementById('more-opt').getAttribute('aria-label'), 'devbox-01 的更多選項');
-    assert.equal(domTw.window.document.getElementById('new-conv').textContent, '開啟此 工作區 的新對話畫面');
-    assert.equal(domTw.window.document.getElementById('send-hint').querySelector('span').textContent, '訊息現已改為立即傳送。可在');
-    assert.equal(domTw.window.document.getElementById('sys-click').querySelector('span').textContent, '在「系統設定」中，按一下 ');
+    assert.equal(w.document.getElementById('orch-title').textContent, 'Configurações do orquestrador');
+    assert.equal(w.document.getElementById('think-eff').textContent, 'Esforço de raciocínio');
+    assert.equal(w.document.getElementById('cust-sb').getAttribute('aria-label'), 'Personalizar barra lateral');
+    assert.equal(w.document.getElementById('screen-lock').textContent, 'Tela bloqueada: os agentes não podem usar este Mac até você desbloqueá-lo');
+    assert.equal(w.document.getElementById('disc-err').textContent, 'Não foi possível desconectar GitHub: network timeout');
+    assert.equal(w.document.getElementById('load-err').textContent, 'Falha ao carregar a página Settings: 500');
+    assert.equal(w.document.getElementById('more-opt').getAttribute('aria-label'), 'Mais opções para devbox-01');
+    assert.equal(w.document.getElementById('new-conv').textContent, 'Abre a tela de nova conversa para este espaço de trabalho');
+    assert.equal(w.document.getElementById('send-hint').querySelector('span').textContent, 'As mensagens agora são enviadas imediatamente. Configure em');
+    assert.equal(w.document.getElementById('sys-click').querySelector('span').textContent, 'Em Configurações do Sistema, clique em ');
+    assert.equal(w.document.getElementById('already-on').querySelector('span').textContent, 'Já está ativado? Selecione ');
 });
 
-test('region eligibility errors, login FAQ link, Available for project, and step counters translate in SC and TC', async t => {
+test('region eligibility errors, login FAQ link, Available for project, and step counters translate in pt-BR', async t => {
     const html = `
       <div>
         <p id="loc-err">Your current account is not eligible for Antigravity, because it is not currently available in your location.</p>
@@ -898,34 +762,19 @@ test('region eligibility errors, login FAQ link, Available for project, and step
     `;
 
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('loc-err').textContent, '您当前的账户无权使用 Antigravity，因为您所在的地区目前暂不支持此服务。');
-    assert.equal(w.document.getElementById('not-elig').textContent, '当前账户无权使用 Antigravity。');
-    assert.equal(w.document.getElementById('reg-unsup').textContent, '当前不支持您所在的地区。');
-    assert.equal(w.document.getElementById('faq-link').textContent, '常见问题');
-    assert.equal(w.document.getElementById('verify-btn').textContent, '验证');
+    assert.equal(w.document.getElementById('loc-err').textContent, 'Sua conta atual não é elegível para o Antigravity, porque ele não está disponível na sua localização no momento.');
+    assert.equal(w.document.getElementById('not-elig').textContent, 'Esta conta não é elegível para o Antigravity.');
+    assert.equal(w.document.getElementById('reg-unsup').textContent, 'Sua região não é compatível.');
+    assert.equal(w.document.getElementById('faq-link').textContent, 'Perguntas frequentes');
+    assert.equal(w.document.getElementById('verify-btn').textContent, 'Verificar');
     assert.equal(w.document.getElementById('lower-verify').textContent, 'verify');
-    assert.equal(w.document.getElementById('avail-proj').textContent, '适用于 my-gcp-proj 项目');
-    assert.equal(w.document.getElementById('avail-proj-split').textContent, '适用于 my-gcp-proj 项目');
-    assert.equal(w.document.getElementById('plan-steps').getAttribute('aria-label'), '计划，已完成 3 / 5 步');
-    assert.equal(w.document.getElementById('q-of').getAttribute('aria-label'), '第 2 / 4 个问题');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('loc-err').textContent, '您目前的帳戶不符合使用 Antigravity 的資格，因為您所在的地區目前不支援此服務。');
-    assert.equal(domTw.window.document.getElementById('not-elig').textContent, '目前帳戶不符合使用 Antigravity 的資格。');
-    assert.equal(domTw.window.document.getElementById('reg-unsup').textContent, '目前不支援您所在的地區。');
-    assert.equal(domTw.window.document.getElementById('faq-link').textContent, '常見問題');
-    assert.equal(domTw.window.document.getElementById('verify-btn').textContent, '驗證');
-    assert.equal(domTw.window.document.getElementById('lower-verify').textContent, 'verify');
-    assert.equal(domTw.window.document.getElementById('avail-proj').textContent, '適用於 my-gcp-proj 專案');
-    assert.equal(domTw.window.document.getElementById('avail-proj-split').textContent, '適用於 my-gcp-proj 專案');
-    assert.equal(domTw.window.document.getElementById('plan-steps').getAttribute('aria-label'), '計畫，已完成 3 / 5 步');
-    assert.equal(domTw.window.document.getElementById('q-of').getAttribute('aria-label'), '第 2 / 4 個問題');
+    assert.equal(w.document.getElementById('avail-proj').textContent, 'Disponível para o projeto my-gcp-proj');
+    assert.equal(w.document.getElementById('avail-proj-split').textContent, 'Disponível para o projeto my-gcp-proj');
+    assert.equal(w.document.getElementById('plan-steps').getAttribute('aria-label'), 'Plano, 3 de 5 etapas concluídas');
+    assert.equal(w.document.getElementById('q-of').getAttribute('aria-label'), 'Pergunta 2 de 4');
 });
 
-test('v2.35.0 inbox mode, dictation languages, plugin permissions and dynamic templates translate in SC and TC', async t => {
+test('v2.35.0 inbox mode, dictation languages, plugin permissions and dynamic templates translate in pt-BR', async t => {
     const html = `
       <div>
         <span id="inbox-mode">Inbox Mode</span>
@@ -944,39 +793,22 @@ test('v2.35.0 inbox mode, dictation languages, plugin permissions and dynamic te
     `;
 
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('inbox-mode').textContent, '收件箱模式');
-    assert.equal(w.document.getElementById('dict-lang').textContent, '听写语言');
-    assert.equal(w.document.getElementById('plug-perm').textContent, '插件权限');
-    assert.equal(w.document.getElementById('revoke-msg').textContent, '将撤销全部 file permissions。插件在再次执行此操作前会先征求您的同意。');
-    assert.equal(w.document.getElementById('ai-credits').textContent, '可用 AI 额度：1,250');
-    assert.equal(w.document.getElementById('dismiss-btn').getAttribute('aria-label'), '忽略：Update ready');
-    assert.equal(w.document.getElementById('move-to').textContent, '移动到归档');
-    assert.equal(w.document.getElementById('new-ws').textContent, '新建工作区...');
-    assert.equal(w.document.getElementById('no-lang').textContent, '未找到与“klingon”匹配的语言');
-    assert.equal(w.document.getElementById('rm-from').textContent, '从 Favorites 移除');
-    assert.equal(w.document.getElementById('rev-all').getAttribute('aria-label'), '全部撤销：GitHub');
-    assert.equal(w.document.getElementById('rev-all').textContent, '全部撤销');
-    assert.equal(w.document.getElementById('rev-one').getAttribute('aria-label'), '撤销：Read files');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('inbox-mode').textContent, '收件匣模式');
-    assert.equal(domTw.window.document.getElementById('dict-lang').textContent, '聽寫語言');
-    assert.equal(domTw.window.document.getElementById('plug-perm').textContent, '外掛程式權限');
-    assert.equal(domTw.window.document.getElementById('revoke-msg').textContent, '將撤銷全部 file permissions。外掛程式在再次執行此操作前會先徵求您的同意。');
-    assert.equal(domTw.window.document.getElementById('ai-credits').textContent, '可用 AI 點數：1,250');
-    assert.equal(domTw.window.document.getElementById('dismiss-btn').getAttribute('aria-label'), '關閉：Update ready');
-    assert.equal(domTw.window.document.getElementById('move-to').textContent, '移至封存');
-    assert.equal(domTw.window.document.getElementById('new-ws').textContent, '新增工作區...');
-    assert.equal(domTw.window.document.getElementById('no-lang').textContent, '找不到與「klingon」相符的語言');
-    assert.equal(domTw.window.document.getElementById('rm-from').textContent, '從 Favorites 移除');
-    assert.equal(domTw.window.document.getElementById('rev-all').getAttribute('aria-label'), '全部撤銷：GitHub');
-    assert.equal(domTw.window.document.getElementById('rev-one').getAttribute('aria-label'), '撤銷：Read files');
+    assert.equal(w.document.getElementById('inbox-mode').textContent, 'Modo caixa de entrada');
+    assert.equal(w.document.getElementById('dict-lang').textContent, 'Idiomas de ditado');
+    assert.equal(w.document.getElementById('plug-perm').textContent, 'Permissões do plugin');
+    assert.equal(w.document.getElementById('revoke-msg').textContent, 'Todas as permissões de arquivos serão revogadas. O plugin vai pedir permissão antes de fazer isso novamente.');
+    assert.equal(w.document.getElementById('ai-credits').textContent, 'Créditos de IA disponíveis: 1,250');
+    assert.equal(w.document.getElementById('dismiss-btn').getAttribute('aria-label'), 'Dispensar: Update ready');
+    assert.equal(w.document.getElementById('move-to').textContent, 'Mover para Arquivo');
+    assert.equal(w.document.getElementById('new-ws').textContent, 'Novo espaço de trabalho...');
+    assert.equal(w.document.getElementById('no-lang').textContent, 'Nenhum idioma correspondente a "klingon"');
+    assert.equal(w.document.getElementById('rm-from').textContent, 'Remover de Favoritos');
+    assert.equal(w.document.getElementById('rev-all').getAttribute('aria-label'), 'Revogar tudo: GitHub');
+    assert.equal(w.document.getElementById('rev-all').textContent, 'Revogar todas');
+    assert.equal(w.document.getElementById('rev-one').getAttribute('aria-label'), 'Revogar: Read files');
 });
 
-test('v2.35.1 deep audit strings, dynamic templates and split DOM nodes translate in SC and TC', async t => {
+test('v2.35.1 deep audit strings, dynamic templates and split DOM nodes translate in pt-BR', async t => {
     const html = `
       <div>
         <span id="answered">Answered in chat</span>
@@ -997,41 +829,23 @@ test('v2.35.1 deep audit strings, dynamic templates and split DOM nodes translat
     `;
 
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('answered').textContent, '已在聊天中回复');
-    assert.equal(w.document.getElementById('auto-res').textContent, '自动解决');
-    assert.equal(w.document.getElementById('back5').getAttribute('aria-label'), '后退 5 秒 (←)');
-    assert.equal(w.document.getElementById('clone-loc').textContent, '克隆到本地');
-    assert.equal(w.document.getElementById('site-reach').textContent, '无法访问此网站');
-    assert.equal(w.document.getElementById('page-work').textContent, '此页面无法正常运作');
-    assert.equal(w.document.getElementById('quota-reset').textContent, '您的 Gemini 4 Pro 配额将于 Dec 1, 2026 重置。请切换至其他可用模型以继续。');
-    assert.equal(w.document.getElementById('need-credits').textContent, '您需要至少 50 AI 额度才能发送消息。要立即继续使用 Gemini 4 Pro，请购买更多 AI 额度。');
-    assert.equal(w.document.getElementById('retry-in').textContent, '模型暂不可用，5 秒后重试（第 2/3 次尝试）');
-    assert.equal(w.document.getElementById('attach-img').textContent, '3 张图片附件');
-    assert.equal(w.document.getElementById('left-hm').textContent, '剩余 2 小时 15 分钟');
-    assert.equal(w.document.getElementById('best-of').textContent, '启动 Best-of-3');
-    assert.equal(w.document.getElementById('gen-steps').textContent, '生成步骤 (4)');
-    assert.equal(w.document.getElementById('no-mcp').textContent, '未找到与“foo”匹配的 MCP 服务器');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('answered').textContent, '已在聊天中回覆');
-    assert.equal(domTw.window.document.getElementById('auto-res').textContent, '自動解決');
-    assert.equal(domTw.window.document.getElementById('back5').getAttribute('aria-label'), '倒轉 5 秒 (←)');
-    assert.equal(domTw.window.document.getElementById('clone-loc').textContent, '複製至本機');
-    assert.equal(domTw.window.document.getElementById('site-reach').textContent, '無法連線到這個網站');
-    assert.equal(domTw.window.document.getElementById('quota-reset').textContent, '您的 Gemini 4 Pro 配額將於 Dec 1, 2026 重設。請切換至其他可用模型以繼續。');
-    assert.equal(domTw.window.document.getElementById('need-credits').textContent, '您需要至少 50 AI 點數才能傳送訊息。若要立即繼續使用 Gemini 4 Pro，請購買更多 AI 點數。');
-    assert.equal(domTw.window.document.getElementById('retry-in').textContent, '模型暫時無法使用，5 秒後重試（第 2/3 次嘗試）');
-    assert.equal(domTw.window.document.getElementById('attach-img').textContent, '3 張圖片附件');
-    assert.equal(domTw.window.document.getElementById('left-hm').textContent, '剩餘 2 小時 15 分鐘');
-    assert.equal(domTw.window.document.getElementById('best-of').textContent, '啟動 Best-of-3');
-    assert.equal(domTw.window.document.getElementById('gen-steps').textContent, '產生步驟 (4)');
-    assert.equal(domTw.window.document.getElementById('no-mcp').textContent, '找不到與「foo」相符的 MCP 伺服器');
+    assert.equal(w.document.getElementById('answered').textContent, 'Respondido no chat');
+    assert.equal(w.document.getElementById('auto-res').textContent, 'Resolver automaticamente');
+    assert.equal(w.document.getElementById('back5').getAttribute('aria-label'), 'Voltar 5 s (←)');
+    assert.equal(w.document.getElementById('clone-loc').textContent, 'Clonar localmente');
+    assert.equal(w.document.getElementById('site-reach').textContent, 'Não foi possível acessar este site');
+    assert.equal(w.document.getElementById('page-work').textContent, 'Esta página não está funcionando');
+    assert.equal(w.document.getElementById('quota-reset').textContent, 'Sua cota para Gemini 4 Pro será redefinida em 1 de dezembro de 2026. Mude para outro modelo disponível para continuar.');
+    assert.equal(w.document.getElementById('need-credits').textContent, 'Você precisa de pelo menos 50 créditos de IA para enviar mensagens. Para continuar usando Gemini 4 Pro agora, compre mais créditos de IA.');
+    assert.equal(w.document.getElementById('retry-in').textContent, 'Modelo indisponível, tentando novamente em 5 s (tentativa 2/3)');
+    assert.equal(w.document.getElementById('attach-img').textContent, '3 anexos de imagem');
+    assert.equal(w.document.getElementById('left-hm').textContent, '2 h 15 min restantes');
+    assert.equal(w.document.getElementById('best-of').textContent, 'Iniciar Best-of-3');
+    assert.equal(w.document.getElementById('gen-steps').textContent, 'Etapas de geração (4)');
+    assert.equal(w.document.getElementById('no-mcp').textContent, 'Nenhum servidor MCP encontrado para "foo"');
 });
 
-test('v2.35.1 additional UI badges, attributes, plan toggles and TW 已發布 hold in SC and TC', async t => {
+test('v2.35.1 additional UI badges, attributes, plan toggles and published branches hold in pt-BR', async t => {
     const html = `
       <div>
         <span id="inbox">Inbox</span>
@@ -1041,42 +855,25 @@ test('v2.35.1 additional UI badges, attributes, plan toggles and TW 已發布 ho
         <button id="applied-btn" aria-label="Applied DarkTheme">Applied</button>
         <button id="show-btn" aria-label="Show MyPlugin">x</button>
         <span id="plan-tog">Build API. Show plan</span>
-        <span id="pub-tw">Published feat/x to origin.</span>
+        <span id="published">Published feat/x to origin.</span>
         <span id="err-line">Error: timeout</span>
         <span id="trig">Triggered nightly-sync</span>
         <span id="tok">Rules: 1,200 tokens</span>
       </div>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('inbox').textContent, '收件箱');
-    assert.equal(w.document.getElementById('resolved').textContent, '已解决');
-    assert.equal(w.document.getElementById('prov').textContent, '正在配置');
-    assert.equal(w.document.getElementById('chosen').textContent, '已选中');
-    assert.equal(w.document.getElementById('applied-btn').getAttribute('aria-label'), '已应用 DarkTheme');
-    assert.equal(w.document.getElementById('applied-btn').textContent, '已应用');
-    assert.equal(w.document.getElementById('show-btn').getAttribute('aria-label'), '显示 MyPlugin');
-    assert.equal(w.document.getElementById('plan-tog').textContent, 'Build API。显示计划');
-    assert.equal(w.document.getElementById('pub-tw').textContent, '已发布 feat/x 至 origin。');
-    assert.equal(w.document.getElementById('err-line').textContent, '错误：timeout');
-    assert.equal(w.document.getElementById('trig').textContent, '已触发 nightly-sync');
-    assert.equal(w.document.getElementById('tok').textContent, '规则：1,200 Token');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('inbox').textContent, '收件匣');
-    assert.equal(domTw.window.document.getElementById('resolved').textContent, '已解決');
-    assert.equal(domTw.window.document.getElementById('prov').textContent, '佈建中');
-    assert.equal(domTw.window.document.getElementById('chosen').textContent, '已選取');
-    assert.equal(domTw.window.document.getElementById('applied-btn').getAttribute('aria-label'), '已套用 DarkTheme');
-    assert.equal(domTw.window.document.getElementById('applied-btn').textContent, '已套用');
-    assert.equal(domTw.window.document.getElementById('show-btn').getAttribute('aria-label'), '顯示 MyPlugin');
-    assert.equal(domTw.window.document.getElementById('plan-tog').textContent, 'Build API。顯示計畫');
-    assert.equal(domTw.window.document.getElementById('pub-tw').textContent, '已發布 feat/x 至 origin。');
-    assert.equal(domTw.window.document.getElementById('err-line').textContent, '錯誤：timeout');
-    assert.equal(domTw.window.document.getElementById('trig').textContent, '已觸發 nightly-sync');
-    assert.equal(domTw.window.document.getElementById('tok').textContent, '規則：1,200 Token');
+    assert.equal(w.document.getElementById('inbox').textContent, 'Caixa de entrada');
+    assert.equal(w.document.getElementById('resolved').textContent, 'Resolvido');
+    assert.equal(w.document.getElementById('prov').textContent, 'Provisionando');
+    assert.equal(w.document.getElementById('chosen').textContent, 'Escolhido');
+    assert.equal(w.document.getElementById('applied-btn').getAttribute('aria-label'), 'Aplicou DarkTheme');
+    assert.equal(w.document.getElementById('applied-btn').textContent, 'Aplicado');
+    assert.equal(w.document.getElementById('show-btn').getAttribute('aria-label'), 'Mostrar MyPlugin');
+    assert.equal(w.document.getElementById('plan-tog').textContent, 'Build API. Mostrar plano');
+    assert.equal(w.document.getElementById('published').textContent, 'Publicado feat/x em origin.');
+    assert.equal(w.document.getElementById('err-line').textContent, 'Erro: timeout');
+    assert.equal(w.document.getElementById('trig').textContent, 'Acionou nightly-sync');
+    assert.equal(w.document.getElementById('tok').textContent, 'Regras: 1,200 tokens');
 });
 
 test('PR #68 short words do not pollute lowercase identifiers and Show <host> in the list again translates cleanly', async t => {
@@ -1097,17 +894,10 @@ test('PR #68 short words do not pollute lowercase identifiers and Show <host> in
     assert.equal(w.document.getElementById('lc-self').textContent, 'self');
     assert.equal(w.document.getElementById('lc-failed').textContent, 'failed');
     assert.equal(w.document.getElementById('lc-resolve').textContent, 'resolve');
-    assert.equal(w.document.getElementById('tc-move').textContent, '移动');
-    assert.equal(w.document.getElementById('show-host').getAttribute('aria-label'), '重新在列表中显示 example.com');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('lc-self').textContent, 'self');
-    assert.equal(domTw.window.document.getElementById('tc-move').textContent, '移動');
-    assert.equal(domTw.window.document.getElementById('show-host').getAttribute('aria-label'), '重新在清單中顯示 example.com');
+    assert.equal(w.document.getElementById('tc-move').textContent, 'Mover');
+    assert.equal(w.document.getElementById('show-host').getAttribute('aria-label'), 'Mostrar example.com na lista novamente');
 });
+
 test('v2.35.1 icon-font fallbacks stay untranslated, permission pill uses short labels, history titles stay isolated, and Show N more keeps the source ellipsis', async t => {
     const html = `
         <span id="i-comment" class="google-symbols" style="font-size: 18px">comment</span>
@@ -1120,42 +910,34 @@ test('v2.35.1 icon-font fallbacks stay untranslated, permission pill uses short 
         <div data-testid="conversation-row-history"><span id="hist-title" class="truncate">Settings</span></div>
         <button id="more-plain">Show 3 more</button>
         <button id="more-ell">Show 3 more...</button>
-        <button id="move-cn">Move to Archive</button>
     `;
     const w = await fixture(t, html);
     const doc = w.document;
     for (const [id, name] of [['i-comment', 'comment'], ['i-quote', 'format_quote'], ['i-laptop', 'laptop_shield']]) {
         const el = doc.getElementById(id);
         assert.equal(el.querySelectorAll(`svg[data-ag-icon-fallback="${name}"]`).length, 1, name);
-        assert.equal(el.textContent, '', `${name} 的图标名称不应以文字显示或被翻译`);
+        assert.equal(el.textContent, '', `${name} não deve aparecer como texto nem ser traduzido`);
     }
-    // 宽高跟随宿主字号（1em），rem 等非 px 单位也不会算错
+    // O tamanho do SVG acompanha a fonte do elemento, inclusive quando medida em rem.
     assert.equal(doc.querySelector('#i-comment svg').getAttribute('width'), '1em');
     assert.equal(doc.getElementById('i-unknown').textContent, 'settings');
-    assert.equal(doc.getElementById('pill-turbo').textContent, '极速');
-    assert.equal(doc.getElementById('pill-default').textContent, '默认');
-    assert.equal(doc.getElementById('plain-default').textContent, '默认 (Default)');
+    assert.equal(doc.getElementById('pill-turbo').textContent, 'Turbo');
+    assert.equal(doc.getElementById('pill-default').textContent, 'Padrão');
+    assert.equal(doc.getElementById('plain-default').textContent, 'Padrão');
     assert.equal(doc.getElementById('hist-title').textContent, 'Settings');
-    assert.equal(doc.getElementById('more-plain').textContent, '显示另外 3 个');
-    assert.equal(doc.getElementById('more-ell').textContent, '显示另外 3 个...');
+    assert.equal(doc.getElementById('more-plain').textContent, 'Mostrar mais 3');
+    assert.equal(doc.getElementById('more-ell').textContent, 'Mostrar mais 3...');
 
-    // React 复用同一个图标节点改成别的图标时，替换 SVG 而不是叠加
+    // O React pode trocar o ícone sem trocar o nó de texto. Deve haver apenas um SVG.
     const quoteText = Array.from(doc.getElementById('i-quote').childNodes).find(n => n.nodeType === w.Node.TEXT_NODE);
     quoteText.nodeValue = 'comment';
     await settle();
     assert.equal(doc.querySelectorAll('#i-quote svg').length, 1);
     assert.equal(doc.querySelector('#i-quote svg').getAttribute('data-ag-icon-fallback'), 'comment');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('pill-turbo').textContent, '極速');
-    assert.equal(domTw.window.document.getElementById('more-plain').textContent, '顯示另外 3 個');
 });
 
-test('v2.35.1 React-split sentences keep CJK spacing, automation hints translate their nouns, and SC/TC templates read naturally', async t => {
-    // 结构照 v2.35.1 React 实际输出：相邻字符串各自成为文字节点，" " 是独立节点，<!----> 是 Fragment 边界
+test('v2.35.1 React-split sentences keep spacing, automation hints translate their nouns, and pt-BR templates read naturally', async t => {
+    // Nós de texto, espaços e limites de fragmentos reproduzem o DOM da versão 2.35.1.
     const html = `
         <span role="status" id="ps2">In System Settings, click <strong>+</strong>, choose<!----> <!----><strong>Antigravity</strong>, then turn it on.<!----> <!---->Already on? Select <strong>Antigravity</strong>, click <strong>–</strong>, then<!----> <!---->click <strong>+</strong> and add it again.</span>
         <span id="kb">Inspect live bindings or record custom key chords filtered to<!----> <code>antigravity.</code> <!---->commands.</span>
@@ -1172,39 +954,32 @@ test('v2.35.1 React-split sentences keep CJK spacing, automation hints translate
         <div data-testid="running-selection-bar"><span id="sel" class="text-foreground">3<!----> selected</span></div>
     `;
     const expected = {
-        ps2: ['在“系统设置”中，点击 +，选择 Antigravity，然后将其开启。已经开启？请选择 Antigravity，点击 –，然后点击 + 重新添加。', '在「系統設定」中，按一下 +，選取 Antigravity，然後將它開啟。已經開啟？請選取 Antigravity，按一下 –，然後按一下 + 重新加入。'],
-        kb: ['查看实时按键绑定或录制自定义组合键，当前筛选范围为 antigravity. 命令。', '檢視即時按鍵繫結或錄製自訂組合鍵，目前篩選範圍為 antigravity. 指令。'],
-        msg: ['消息现已改为立即发送。可在设置中调整。', '訊息現已改為立即傳送。可在設定中調整。'],
-        wk2: ['每周星期一约 9:00 AM', '每週星期一約 9:00 AM'],
-        dp: ['由 Foo Plugin 创建的智能体运行在专用的项目中并拥有独立权限，您可以随时在项目设置页面中更改。除上述默认权限外，Foo Plugin 还请求以下访问权限。', '由 Foo Plugin 建立的代理執行於專用的專案中並擁有獨立權限，您可以隨時在專案設定頁面中變更。除上述預設權限外，Foo Plugin 還請求以下存取權限。'],
-        toast: ['此自动化创建的智能体会在具有独立权限的专用项目中运行。您可以在项目设置页面更改权限。', '此自動化建立的代理會在具有獨立權限的專屬專案中執行。您可以在專案設定頁面變更權限。'],
-        stopn: ['确定要停止 3 个项目吗？', '確定要停止 3 個項目嗎？'],
-        noapp: ['未找到插件 foo-bar。', '找不到外掛程式 foo-bar。'],
-        perm2: ['Antigravity 需要这两项权限才能控制您的电脑。', 'Antigravity 需要這兩項權限才能操作您的電腦。'],
-        relaunch: ['请重新启动 Antigravity 以完成“屏幕录制”设置。', '請重新啟動 Antigravity 以完成「螢幕錄製」設定。'],
-        tool1: ['1 个工具', '1 個工具'],
-        tool2: ['5 个工具 · 登录以获取更多', '5 個工具 · 登入以取得更多'],
-        conn: ['正在连接到 devbox…', '正在連線至 devbox…'],
-        conn2: ['正在连接到 devbox', '正在連線至 devbox'],
-        sel: ['3 项已选中', '3 項已選取']
+        ps2: 'Em Configurações do Sistema, clique em +, escolha Antigravity, depois ative-o. Já está ativado? Selecione Antigravity, clique em –, depois clique em + e adicione-o novamente.',
+        kb: 'Inspecione os atalhos ativos ou grave combinações personalizadas filtradas pelo prefixo antigravity. nos comandos.',
+        msg: 'As mensagens agora são enviadas imediatamente. Configure em Configurações.',
+        wk2: 'Semanalmente na segunda-feira por volta de 9:00 AM',
+        dp: 'Os agentes criados por Foo Plugin são executados em um projeto dedicado com permissões próprias, que você pode alterar a qualquer momento nas configurações do projeto. Além desses padrões, Foo Plugin solicita o acesso abaixo.',
+        toast: 'Os agentes criados por esta automação são executados em um ambiente dedicado (projeto) com permissões próprias. Você pode alterar as permissões na página de configurações de projeto.',
+        stopn: 'Parar 3 itens?',
+        noapp: 'Nenhum plugin encontrado para foo-bar.',
+        perm2: 'Antigravity precisa de ambas as permissões para controlar seu computador.',
+        relaunch: 'Reinicie Antigravity para concluir a configuração de "Gravação de tela".',
+        tool1: '1 ferramenta',
+        tool2: '5 ferramentas · entre para ver mais',
+        conn: 'Conectando a devbox…',
+        conn2: 'Conectando a devbox',
+        sel: '3 selecionados'
     };
     const w = await fixture(t, html);
-    for (const [id, [sc]] of Object.entries(expected)) {
-        assert.equal(w.document.getElementById(id).textContent, sc, `SC ${id}`);
+    for (const [id, translation] of Object.entries(expected)) {
+        assert.equal(w.document.getElementById(id).textContent, translation, `${id}`);
     }
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    for (const [id, [, tc]] of Object.entries(expected)) {
-        assert.equal(domTw.window.document.getElementById(id).textContent, tc, `TC ${id}`);
-    }
-    // 两侧都是元素（并排按钮）时，中间的空白是分隔用的，不收掉
+    // O espaço entre dois botões é um separador visível.
     const w2 = await fixture(t, '<div id="pair"><button>Cancel</button> <button>Settings</button></div>');
-    assert.equal(w2.document.getElementById('pair').textContent, '取消 设置');
+    assert.equal(w2.document.getElementById('pair').textContent, 'Cancelar Configurações');
 });
 
-test('plugin and feature names stay in the original language in SC and TC (#63)', async t => {
+test('plugin and feature names stay in the original language in pt-BR (#63)', async t => {
     const html = `
         <span id="n1">Chief of Staff</span><span id="n2">Concierge</span><span id="n3">Data Agent Kit</span>
         <span id="n4">Google Workspace</span><span id="n5">Google Developer Knowledge</span>
@@ -1213,25 +988,19 @@ test('plugin and feature names stay in the original language in SC and TC (#63)'
     `;
     const names = { n1: 'Chief of Staff', n2: 'Concierge', n3: 'Data Agent Kit', n4: 'Google Workspace', n5: 'Google Developer Knowledge' };
     const w = await fixture(t, html);
-    for (const [id, name] of Object.entries(names)) assert.equal(w.document.getElementById(id).textContent, name, `SC ${name}`);
-    assert.equal(w.document.getElementById('s1').textContent, '已发送给 Chief of Staff');
-    // 原本误用 Concierge 的译名「语音助手」
-    assert.equal(w.document.getElementById('s2').textContent, 'Chief of Staff 语音模式已启用');
-    assert.equal(w.document.getElementById('s3').textContent, '欢迎使用 Concierge');
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    for (const [id, name] of Object.entries(names)) assert.equal(domTw.window.document.getElementById(id).textContent, name, `TC ${name}`);
-    assert.equal(domTw.window.document.getElementById('s2').textContent, 'Chief of Staff 語音模式已啟用');
+    for (const [id, name] of Object.entries(names)) assert.equal(w.document.getElementById(id).textContent, name, `${name}`);
+    assert.equal(w.document.getElementById('s1').textContent, 'Enviado ao Chief of Staff');
+    // Concierge é o nome do produto.
+    assert.equal(w.document.getElementById('s2').textContent, 'O modo de voz do Chief of Staff está ativo');
+    assert.equal(w.document.getElementById('s3').textContent, 'Boas-vindas ao Concierge');
 });
 
 test('CJK gap collapse is undone when React reuses neighbor text nodes, and nested markup is walked once', async t => {
     const html = '<span id="pair">Settings<!----> <!---->Help</span>';
-    const w = await fixture(t, html);
+    const w = await fixture(t, html, undefined, { dictionaryOverrides: { Settings: '设置', Help: '帮助' } });
     const pair = w.document.getElementById('pair');
     assert.equal(pair.textContent, '设置帮助');
-    // React 重用同一批文字节点换成英文：收掉的空白要还原；换回可翻译文字时再次收合
+    // Ao reutilizar os nós em inglês, o React recupera o espaço entre eles.
     pair.firstChild.data = 'Alice';
     pair.lastChild.data = 'Bob';
     await settle();
@@ -1240,19 +1009,7 @@ test('CJK gap collapse is undone when React reuses neighbor text nodes, and nest
     pair.lastChild.data = 'Help';
     await settle();
     assert.equal(pair.textContent, '设置帮助');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    const pairTw = domTw.window.document.getElementById('pair');
-    assert.equal(pairTw.textContent, '設定說明');
-    pairTw.firstChild.data = 'Alice';
-    pairTw.lastChild.data = 'Bob';
-    await settle();
-    assert.equal(pairTw.textContent, 'Alice Bob');
-
-    // 判断空白时不翻译相邻子树：嵌套结构每个节点只遍历一次（修正前每多一层调用次数加倍）
+    // Verificar os vizinhos não pode disparar novas travessias da mesma subárvore.
     const vm = require('node:vm');
     const counter = createDom('');
     t.after(() => counter.window.close());
@@ -1276,7 +1033,7 @@ test('CJK gap collapse is undone when React reuses neighbor text nodes, and nest
     assert.ok(context.calls <= 2 * nodes, `translateNode called ${context.calls} times for ${nodes} nodes`);
 });
 
-test('slash command names and sidebar plugin names remain in English while descriptions and working hints translate in SC and TC', async t => {
+test('slash command names and sidebar plugin names remain in English while descriptions and working hints translate in pt-BR', async t => {
     const html = `
       <div>
         <div role="listbox">
@@ -1315,11 +1072,11 @@ test('slash command names and sidebar plugin names remain in English while descr
     `;
     const w = await fixture(t, html);
     assert.equal(w.document.getElementById('cmd-goal').textContent, 'goal');
-    assert.equal(w.document.getElementById('desc-goal').textContent, '持续运行，直到指定的目标完全完成');
+    assert.equal(w.document.getElementById('desc-goal').textContent, 'Executar até que o objetivo especificado seja totalmente concluído');
     assert.equal(w.document.getElementById('cmd-schedule').textContent, 'schedule');
-    assert.equal(w.document.getElementById('desc-schedule').textContent, '按周期计划或作为一次性定时器运行指令');
+    assert.equal(w.document.getElementById('desc-schedule').textContent, 'Executar uma instrução de forma recorrente ou como um temporizador único');
     assert.equal(w.document.getElementById('cmd-plan').textContent, 'plan');
-    assert.equal(w.document.getElementById('desc-plan').textContent, '在执行任务前仔细制定计划。');
+    assert.equal(w.document.getElementById('desc-plan').textContent, 'Planejar com cuidado antes de executar uma tarefa.');
     assert.equal(w.document.getElementById('cmd-plugin').textContent, 'plugin');
     assert.equal(w.document.getElementById('cmd-automation').textContent, 'automation');
     assert.equal(w.document.getElementById('cmd-grill').textContent, 'grill-me');
@@ -1328,36 +1085,24 @@ test('slash command names and sidebar plugin names remain in English while descr
     assert.equal(w.document.getElementById('cmd-btw').textContent, 'btw');
     assert.equal(w.document.getElementById('cmd-slash').textContent, '/schedule');
     assert.equal(w.document.getElementById('cmd-models').textContent, 'models');
-    assert.equal(w.document.getElementById('desc-models').textContent, '选择模型');
+    assert.equal(w.document.getElementById('desc-models').textContent, 'Selecionar modelo');
 
-    assert.equal(w.document.getElementById('sb-plugins-hdr').textContent, '插件');
+    assert.equal(w.document.getElementById('sb-plugins-hdr').textContent, 'Plugins');
     assert.equal(w.document.getElementById('plug-chrome').textContent, 'Chrome DevTools');
-    assert.equal(w.document.getElementById('plug-open-chrome').getAttribute('aria-label'), '打开 Chrome DevTools 插件');
+    assert.equal(w.document.getElementById('plug-open-chrome').getAttribute('aria-label'), 'Abrir o plugin Chrome DevTools');
     assert.equal(w.document.getElementById('plug-mwg').textContent, 'Modern Web Guidance');
     assert.equal(w.document.getElementById('plug-ws').textContent, 'Google Workspace');
     assert.equal(w.document.getElementById('plug-dak').textContent, 'Data Agent Kit');
     assert.equal(w.document.getElementById('plug-knowledge').textContent, 'Knowledge');
-    assert.equal(w.document.getElementById('plug-open-k').getAttribute('aria-label'), '打开 Knowledge 插件');
-    assert.equal(w.document.getElementById('plug-mkp').textContent, '打开市场');
-    assert.equal(w.document.getElementById('plug-more').textContent, '展开更多');
-    assert.equal(w.document.getElementById('sb-other-hdr').textContent, '知识库');
+    assert.equal(w.document.getElementById('plug-open-k').getAttribute('aria-label'), 'Abrir o plugin Knowledge');
+    assert.equal(w.document.getElementById('plug-mkp').textContent, 'Abrir marketplace');
+    assert.equal(w.document.getElementById('plug-more').textContent, 'Ver mais');
+    assert.equal(w.document.getElementById('sb-other-hdr').textContent, 'Conhecimento');
 
-    assert.equal(w.document.getElementById('work-hook').textContent, '钩子 Json SessionStart');
-    assert.equal(w.document.getElementById('work-run').textContent, '正在运行 scan dicts for slug and lowercase keys');
-    assert.equal(w.document.getElementById('work-dur').textContent, '1 分钟 31 秒');
+    assert.equal(w.document.getElementById('work-hook').textContent, 'Hook Json SessionStart');
+    assert.equal(w.document.getElementById('work-run').textContent, 'Executando scan dicts for slug and lowercase keys');
+    assert.equal(w.document.getElementById('work-dur').textContent, '1 min 31 s');
     assert.equal(w.document.getElementById('prose-run').textContent, 'Running tests on CI requires valid credentials.');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('cmd-goal').textContent, 'goal');
-    assert.equal(domTw.window.document.getElementById('cmd-models').textContent, 'models');
-    assert.equal(domTw.window.document.getElementById('plug-knowledge').textContent, 'Knowledge');
-    assert.equal(domTw.window.document.getElementById('sb-other-hdr').textContent, '知識庫');
-    assert.equal(domTw.window.document.getElementById('work-hook').textContent, '鉤子 Json SessionStart');
-    assert.equal(domTw.window.document.getElementById('work-run').textContent, '正在執行 scan dicts for slug and lowercase keys');
-    assert.equal(domTw.window.document.getElementById('work-dur').textContent, '1 分鐘 31 秒');
 });
 
 test('sidecar plugin modal keeps plugin name untranslated, translates side-pane sentence, Title-Case section headings, and higher-tier upgrade notice', async t => {
@@ -1387,38 +1132,21 @@ test('sidecar plugin modal keeps plugin name untranslated, translates side-pane 
     `;
     const w = await fixture(t, html);
     assert.equal(w.document.getElementById('modal-plugin').textContent, 'Context Usage');
-    assert.equal(w.document.getElementById('modal-status').textContent, '运行中');
-    assert.equal(w.document.getElementById('banner-title').textContent, '侧边面板界面可用');
-    assert.equal(w.document.getElementById('banner-desc-split').textContent, '直接在侧边面板中流式传输与控制 Context Usage。');
-    assert.equal(w.document.getElementById('banner-desc-single').textContent, '直接在侧边面板中流式传输与控制 Context Usage。');
-    assert.equal(w.document.getElementById('open-sp').textContent, '在侧边面板中打开');
-    assert.equal(w.document.getElementById('lbl-type').textContent, '类型');
-    assert.equal(w.document.getElementById('lbl-cmd').textContent, '命令');
-    assert.equal(w.document.getElementById('lbl-host').textContent, '主机端点');
-    assert.equal(w.document.getElementById('outside-cu').textContent, '上下文用量');
-    assert.equal(w.document.getElementById('sec-nav').textContent, '导航');
-    assert.equal(w.document.getElementById('sec-sug').textContent, '建议');
-    assert.equal(w.document.getElementById('sec-rec').textContent, '推荐');
-    assert.equal(w.document.getElementById('lbl-days').textContent, '天');
+    assert.equal(w.document.getElementById('modal-status').textContent, 'Em execução');
+    assert.equal(w.document.getElementById('banner-title').textContent, 'Interface do painel lateral disponível');
+    assert.equal(w.document.getElementById('banner-desc-split').textContent, 'Transmitir e controlar Context Usage diretamente no painel lateral.');
+    assert.equal(w.document.getElementById('banner-desc-single').textContent, 'Transmitir e controlar Context Usage diretamente no painel lateral.');
+    assert.equal(w.document.getElementById('open-sp').textContent, 'Abrir no painel lateral');
+    assert.equal(w.document.getElementById('lbl-type').textContent, 'Tipo');
+    assert.equal(w.document.getElementById('lbl-cmd').textContent, 'Comando');
+    assert.equal(w.document.getElementById('lbl-host').textContent, 'Endpoint do host');
+    assert.equal(w.document.getElementById('outside-cu').textContent, 'Uso do contexto');
+    assert.equal(w.document.getElementById('sec-nav').textContent, 'Navegação');
+    assert.equal(w.document.getElementById('sec-sug').textContent, 'Sugestões');
+    assert.equal(w.document.getElementById('sec-rec').textContent, 'Recomendado');
+    assert.equal(w.document.getElementById('lbl-days').textContent, 'Dias');
     assert.equal(w.document.getElementById('lc-nav').textContent, 'navigation');
-    assert.equal(w.document.getElementById('upgrade-ultra').textContent, '您可以升级到更高级别的 Google AI Ultra 计划以获得最高的速率限制。');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('modal-plugin').textContent, 'Context Usage');
-    assert.equal(domTw.window.document.getElementById('banner-desc-split').textContent, '直接在側邊面板中串流傳輸與控制 Context Usage。');
-    assert.equal(domTw.window.document.getElementById('banner-desc-single').textContent, '直接在側邊面板中串流傳輸與控制 Context Usage。');
-    assert.equal(domTw.window.document.getElementById('lbl-type').textContent, '類型');
-    assert.equal(domTw.window.document.getElementById('lbl-cmd').textContent, '指令');
-    assert.equal(domTw.window.document.getElementById('outside-cu').textContent, '上下文用量');
-    assert.equal(domTw.window.document.getElementById('sec-nav').textContent, '導覽');
-    assert.equal(domTw.window.document.getElementById('sec-sug').textContent, '建議');
-    assert.equal(domTw.window.document.getElementById('sec-rec').textContent, '推薦');
-    assert.equal(domTw.window.document.getElementById('lbl-days').textContent, '天');
-    assert.equal(domTw.window.document.getElementById('lc-nav').textContent, 'navigation');
-    assert.equal(domTw.window.document.getElementById('upgrade-ultra').textContent, '您可以升級至更高等級的 Google AI Ultra 方案以獲得最高的速率限制。');
+    assert.equal(w.document.getElementById('upgrade-ultra').textContent, 'Você pode fazer upgrade para um plano Google AI Ultra de nível superior para receber os maiores limites de uso.');
 });
 
 test('folded step summaries without counts and plan mode tool labels translate while code blocks stay isolated', async t => {
@@ -1434,28 +1162,16 @@ test('folded step summaries without counts and plan mode tool labels translate w
       </div>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('fs-1').textContent, '已探索，已运行命令');
-    assert.equal(w.document.getElementById('fs-2').textContent, '已探索，已编辑，已运行命令');
-    assert.equal(w.document.getElementById('fs-3').textContent, '已探索，已运行 2 个命令');
-    assert.equal(w.document.getElementById('fs-4').textContent, '正在探索，正在运行命令');
-    assert.equal(w.document.getElementById('pm-exit').textContent, '退出规划模式');
-    assert.equal(w.document.getElementById('pm-enter').textContent, '进入规划模式');
+    assert.equal(w.document.getElementById('fs-1').textContent, 'Explorou, Executou comando');
+    assert.equal(w.document.getElementById('fs-2').textContent, 'Explorou, Editou, Executou comando');
+    assert.equal(w.document.getElementById('fs-3').textContent, 'Explorou, Executou 2 comandos');
+    assert.equal(w.document.getElementById('fs-4').textContent, 'Explorando, Executando comando');
+    assert.equal(w.document.getElementById('pm-exit').textContent, 'Sair do modo de planejamento');
+    assert.equal(w.document.getElementById('pm-enter').textContent, 'Entrar no modo de planejamento');
     assert.equal(w.document.getElementById('pm-code').textContent, 'exit_plan_mode');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('fs-1').textContent, '已探索，已執行指令');
-    assert.equal(domTw.window.document.getElementById('fs-2').textContent, '已探索，已編輯，已執行指令');
-    assert.equal(domTw.window.document.getElementById('fs-3').textContent, '已探索，已執行 2 個指令');
-    assert.equal(domTw.window.document.getElementById('fs-4').textContent, '正在探索，正在執行指令');
-    assert.equal(domTw.window.document.getElementById('pm-exit').textContent, '退出規劃模式');
-    assert.equal(domTw.window.document.getElementById('pm-enter').textContent, '進入規劃模式');
-    assert.equal(domTw.window.document.getElementById('pm-code').textContent, 'exit_plan_mode');
 });
 
-test('tool call section labels, truncation hints, hover notices, and progress pills translate safely in SC and TC', async t => {
+test('tool call section labels, truncation hints, hover notices, and progress pills translate safely in pt-BR', async t => {
     const html = `
       <div>
         <div id="btw-single">Applies to /btw and messages sent after this turn</div>
@@ -1484,52 +1200,29 @@ test('tool call section labels, truncation hints, hover notices, and progress pi
       </div>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('btw-single').textContent, '适用于 /btw 及本轮之后发送的消息');
-    assert.equal(w.document.getElementById('btw-split').textContent, '适用于 /btw 及本轮之后发送的消息');
-    assert.equal(w.document.getElementById('fc-single').textContent, '3 个文件已更改');
-    assert.equal(w.document.getElementById('fc-one').textContent, '1 个文件已更改');
-    assert.equal(w.document.getElementById('fc-diff').textContent, '3 个文件已更改 +66 -0');
-    assert.equal(w.document.getElementById('fc-split').textContent, '3 个文件已更改');
+    assert.equal(w.document.getElementById('btw-single').textContent, 'Vale para /btw e para as mensagens enviadas depois deste turno');
+    assert.equal(w.document.getElementById('btw-split').textContent, 'Vale para /btw e para as mensagens enviadas depois deste turno');
+    assert.equal(w.document.getElementById('fc-single').textContent, '3 arquivos alterados');
+    assert.equal(w.document.getElementById('fc-one').textContent, '1 arquivo alterado');
+    assert.equal(w.document.getElementById('fc-diff').textContent, '3 arquivos alterados +66 -0');
+    assert.equal(w.document.getElementById('fc-split').textContent, '3 arquivos alterados');
     assert.equal(w.document.getElementById('fc-prose').textContent, 'These files changed yesterday');
-    assert.equal(w.document.getElementById('st-single').textContent, '3/3 步骤');
-    assert.equal(w.document.getElementById('st-one').textContent, '1/1 步骤');
-    assert.equal(w.document.getElementById('st-split').textContent, '3/3 步骤');
+    assert.equal(w.document.getElementById('st-single').textContent, '3/3 etapas');
+    assert.equal(w.document.getElementById('st-one').textContent, '1/1 etapa');
+    assert.equal(w.document.getElementById('st-split').textContent, '3/3 etapas');
     assert.equal(w.document.getElementById('st-plain').textContent, 'steps');
-    assert.equal(w.document.getElementById('lbl-args').textContent, '参数');
-    assert.equal(w.document.getElementById('lbl-out').textContent, '输出');
-    assert.equal(w.document.getElementById('lbl-res').textContent, '结果');
-    assert.equal(w.document.getElementById('lbl-resp').textContent, '响应');
+    assert.equal(w.document.getElementById('lbl-args').textContent, 'Argumentos');
+    assert.equal(w.document.getElementById('lbl-out').textContent, 'Saída');
+    assert.equal(w.document.getElementById('lbl-res').textContent, 'Resultado');
+    assert.equal(w.document.getElementById('lbl-resp').textContent, 'Resposta');
     assert.equal(w.document.getElementById('lc-args').textContent, 'arguments');
     assert.equal(w.document.getElementById('lc-res').textContent, 'result');
     assert.equal(w.document.getElementById('lc-resp').textContent, 'response');
-    assert.equal(w.document.getElementById('tr-lines').textContent, '... 还有 24 行，已截断显示。');
-    assert.equal(w.document.getElementById('tr-one').textContent, '… 还有 1 行，已截断显示。');
-    assert.equal(w.document.getElementById('tr-chars').textContent, '... 还有 120 个字符，已截断显示。');
-    assert.equal(w.document.getElementById('tr-split').textContent, '... 24 行，已截断显示。');
-    assert.equal(w.document.getElementById('undo-rewind').textContent, '仅回退对话进度，您的文件将保持原样不变。');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('btw-single').textContent, '適用於 /btw 與本輪之後傳送的訊息');
-    assert.equal(domTw.window.document.getElementById('btw-split').textContent, '適用於 /btw 與本輪之後傳送的訊息');
-    assert.equal(domTw.window.document.getElementById('fc-single').textContent, '3 個檔案已變更');
-    assert.equal(domTw.window.document.getElementById('fc-diff').textContent, '3 個檔案已變更 +66 -0');
-    assert.equal(domTw.window.document.getElementById('fc-split').textContent, '3 個檔案已變更');
-    assert.equal(domTw.window.document.getElementById('fc-prose').textContent, 'These files changed yesterday');
-    assert.equal(domTw.window.document.getElementById('st-single').textContent, '3/3 步驟');
-    assert.equal(domTw.window.document.getElementById('st-split').textContent, '3/3 步驟');
-    assert.equal(domTw.window.document.getElementById('st-plain').textContent, 'steps');
-    assert.equal(domTw.window.document.getElementById('lbl-args').textContent, '參數');
-    assert.equal(domTw.window.document.getElementById('lbl-out').textContent, '輸出');
-    assert.equal(domTw.window.document.getElementById('lbl-res').textContent, '結果');
-    assert.equal(domTw.window.document.getElementById('lbl-resp').textContent, '回應');
-    assert.equal(domTw.window.document.getElementById('lc-args').textContent, 'arguments');
-    assert.equal(domTw.window.document.getElementById('tr-lines').textContent, '... 還有 24 行，已截斷顯示。');
-    assert.equal(domTw.window.document.getElementById('tr-chars').textContent, '... 還有 120 個字元，已截斷顯示。');
-    assert.equal(domTw.window.document.getElementById('tr-split').textContent, '... 24 行，已截斷顯示。');
-    assert.equal(domTw.window.document.getElementById('undo-rewind').textContent, '僅回退對話進度，您的檔案將保持原樣不變。');
+    assert.equal(w.document.getElementById('tr-lines').textContent, '... mais 24 linhas, truncadas para exibição.');
+    assert.equal(w.document.getElementById('tr-one').textContent, '… mais 1 linha, truncada para exibição.');
+    assert.equal(w.document.getElementById('tr-chars').textContent, '... mais 120 caracteres, truncados para exibição.');
+    assert.equal(w.document.getElementById('tr-split').textContent, '... 24 linhas a mais, truncadas para exibição.');
+    assert.equal(w.document.getElementById('undo-rewind').textContent, 'Somente a conversa será revertida; seus arquivos permanecerão como estão.');
 });
 
 test('third-party sidecar plugin iframes and aux-pane plugin tabs stay untranslated while built-in Swarm sidecars still translate', async t => {
@@ -1572,7 +1265,7 @@ test('third-party sidecar plugin iframes and aux-pane plugin tabs stay untransla
     swarmFrame.contentDocument.body.innerHTML = swarmFrameHtml;
     swarmFrame.contentWindow.eval(loadRuntime());
     await settle();
-    assert.equal(swarmFrame.contentDocument.getElementById('sw-ov').textContent, '概览');
+    assert.equal(swarmFrame.contentDocument.getElementById('sw-ov').textContent, 'Visão geral');
 
     const auxHtml = `
       <div>
@@ -1593,27 +1286,14 @@ test('third-party sidecar plugin iframes and aux-pane plugin tabs stay untransla
       </div>
     `;
     const w = await fixture(t, auxHtml);
-    assert.equal(w.document.getElementById('tab-review').textContent, '评审');
+    assert.equal(w.document.getElementById('tab-review').textContent, 'Revisão');
     assert.equal(w.document.getElementById('tab-cu').textContent, 'Context Usage');
     assert.equal(w.document.getElementById('tab-notes').textContent, 'Notes');
-    assert.equal(w.document.getElementById('aux-open-file').textContent, '打开文件');
-    assert.equal(w.document.getElementById('aux-side-q').textContent, '侧边提问');
+    assert.equal(w.document.getElementById('aux-open-file').textContent, 'Abrir arquivo');
+    assert.equal(w.document.getElementById('aux-side-q').textContent, 'Pergunta paralela');
     assert.equal(w.document.getElementById('aux-cu').textContent, 'Context Usage');
-    assert.equal(w.document.getElementById('menu-skills-used').textContent, '已用技能');
-    assert.equal(w.document.getElementById('builtin-cu').textContent, '上下文用量');
-
-    const domTw = createDom(auxHtml);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('tab-review').textContent, '審查');
-    assert.equal(domTw.window.document.getElementById('tab-cu').textContent, 'Context Usage');
-    assert.equal(domTw.window.document.getElementById('tab-notes').textContent, 'Notes');
-    assert.equal(domTw.window.document.getElementById('aux-open-file').textContent, '開啟檔案');
-    assert.equal(domTw.window.document.getElementById('aux-side-q').textContent, '側邊提問');
-    assert.equal(domTw.window.document.getElementById('aux-cu').textContent, 'Context Usage');
-    assert.equal(domTw.window.document.getElementById('menu-skills-used').textContent, '已使用技能');
-    assert.equal(domTw.window.document.getElementById('builtin-cu').textContent, '上下文用量');
+    assert.equal(w.document.getElementById('menu-skills-used').textContent, 'Habilidades usadas');
+    assert.equal(w.document.getElementById('builtin-cu').textContent, 'Uso do contexto');
 });
 
 test('expanded tool call labels and truncation hints inside soft-isolated siblings translate while preserving code and thinking text', async t => {
@@ -1667,53 +1347,27 @@ test('expanded tool call labels and truncation hints inside soft-isolated siblin
       for (const s of ['... ', '12', ' more ', 'lines', ', truncated for display.']) em2.appendChild(win.document.createTextNode(s));
     });
     assert.equal(w.document.getElementById('thinking-body').textContent, 'Thinking about Arguments and Output in Result');
-    assert.equal(w.document.getElementById('mono-args').textContent, '参数');
+    assert.equal(w.document.getElementById('mono-args').textContent, 'Argumentos');
     assert.equal(w.document.getElementById('mono-code').textContent, '{"Arguments": "Result"}');
-    assert.equal(w.document.getElementById('mono-out').textContent, '输出');
-    assert.equal(w.document.getElementById('mono-trunc').textContent, '... 还有 24 行，已截断显示。');
-    assert.equal(w.document.getElementById('tn-res').textContent, '结果');
-    assert.equal(w.document.getElementById('tn-resp').textContent, '响应');
-    assert.equal(w.document.getElementById('cb-args').textContent, '参数');
-    assert.equal(w.document.getElementById('cb-out').textContent, '输出');
-    assert.equal(w.document.getElementById('adj-args').textContent, '参数');
-    assert.equal(w.document.getElementById('nested-args').textContent, '参数');
-    assert.equal(w.document.getElementById('jsx-em-trunc').textContent, '... 还有 24 行，已截断显示。');
-    assert.equal(w.document.getElementById('step-args').textContent, '参数');
-    assert.equal(w.document.getElementById('step-em-trunc').textContent, '... 还有 12 行，已截断显示。');
+    assert.equal(w.document.getElementById('mono-out').textContent, 'Saída');
+    assert.equal(w.document.getElementById('mono-trunc').textContent, '... mais 24 linhas, truncadas para exibição.');
+    assert.equal(w.document.getElementById('tn-res').textContent, 'Resultado');
+    assert.equal(w.document.getElementById('tn-resp').textContent, 'Resposta');
+    assert.equal(w.document.getElementById('cb-args').textContent, 'Argumentos');
+    assert.equal(w.document.getElementById('cb-out').textContent, 'Saída');
+    assert.equal(w.document.getElementById('adj-args').textContent, 'Argumentos');
+    assert.equal(w.document.getElementById('nested-args').textContent, 'Argumentos');
+    assert.equal(w.document.getElementById('jsx-em-trunc').textContent, '... mais 24 linhas, truncadas para exibição.');
+    assert.equal(w.document.getElementById('step-args').textContent, 'Argumentos');
+    assert.equal(w.document.getElementById('step-em-trunc').textContent, '... mais 12 linhas, truncadas para exibição.');
     assert.equal(w.document.getElementById('keep-tn').textContent, 'Knowledge');
     assert.equal(w.document.getElementById('plain-lc').textContent, 'arguments');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    const em1Tw = domTw.window.document.getElementById('jsx-em-trunc');
-    em1Tw.textContent = '';
-    for (const s of ['... ', '24', ' more ', 'lines', ', truncated for display.']) em1Tw.appendChild(domTw.window.document.createTextNode(s));
-    const em2Tw = domTw.window.document.getElementById('step-em-trunc');
-    em2Tw.textContent = '';
-    for (const s of ['... ', '12', ' more ', 'lines', ', truncated for display.']) em2Tw.appendChild(domTw.window.document.createTextNode(s));
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('thinking-body').textContent, 'Thinking about Arguments and Output in Result');
-    assert.equal(domTw.window.document.getElementById('mono-args').textContent, '參數');
-    assert.equal(domTw.window.document.getElementById('mono-out').textContent, '輸出');
-    assert.equal(domTw.window.document.getElementById('mono-trunc').textContent, '... 還有 24 行，已截斷顯示。');
-    assert.equal(domTw.window.document.getElementById('tn-res').textContent, '結果');
-    assert.equal(domTw.window.document.getElementById('tn-resp').textContent, '回應');
-    assert.equal(domTw.window.document.getElementById('cb-args').textContent, '參數');
-    assert.equal(domTw.window.document.getElementById('cb-out').textContent, '輸出');
-    assert.equal(domTw.window.document.getElementById('adj-args').textContent, '參數');
-    assert.equal(domTw.window.document.getElementById('nested-args').textContent, '參數');
-    assert.equal(domTw.window.document.getElementById('jsx-em-trunc').textContent, '... 還有 24 行，已截斷顯示。');
-    assert.equal(domTw.window.document.getElementById('step-args').textContent, '參數');
-    assert.equal(domTw.window.document.getElementById('step-em-trunc').textContent, '... 還有 12 行，已截斷顯示。');
-    assert.equal(domTw.window.document.getElementById('keep-tn').textContent, 'Knowledge');
-    assert.equal(domTw.window.document.getElementById('plain-lc').textContent, 'arguments');
 });
 
-test('turn indicator hover attachments, counter, and command exit codes translate in SC and TC', async t => {
+test('turn indicator hover attachments, counter, and command exit codes translate in pt-BR', async t => {
     const html = `
       <div>
-        <div id="att-title">处理以上三个问题 (3 image attachments)</div>
+        <div id="att-title">Resolver os três problemas acima (3 image attachments)</div>
         <span id="att-single">(1 image attachment)</span>
         <span id="att-file">(2 file attachments)</span>
         <span id="turn-cnt">4 of 14</span>
@@ -1728,33 +1382,16 @@ test('turn indicator hover attachments, counter, and command exit codes translat
       </div>
     `;
     const w = await fixture(t, html);
-    assert.equal(w.document.getElementById('att-title').textContent, '处理以上三个问题 (3 张图片附件)');
-    assert.equal(w.document.getElementById('att-single').textContent, '(1 张图片附件)');
-    assert.equal(w.document.getElementById('att-file').textContent, '(2 个文件附件)');
+    assert.equal(w.document.getElementById('att-title').textContent, 'Resolver os três problemas acima (3 anexos de imagem)');
+    assert.equal(w.document.getElementById('att-single').textContent, '(1 anexo de imagem)');
+    assert.equal(w.document.getElementById('att-file').textContent, '(2 anexos de arquivo)');
     assert.equal(w.document.getElementById('turn-cnt').textContent, '4 / 14');
-    assert.equal(w.document.getElementById('exit-dot').textContent, '· 已退出，退出码 1');
-    assert.equal(w.document.getElementById('exit-bare').textContent, '已退出，退出码 0');
-    assert.equal(w.document.getElementById('exit-comb').textContent, '已运行 npm test · 已退出，退出码 1');
-    assert.equal(w.document.getElementById('exit-split').textContent, '已退出，退出码 1');
-    assert.equal(w.document.getElementById('ctx-folder').textContent, '文件夹');
-    assert.equal(w.document.getElementById('ctx-drive').textContent, '云端硬盘');
+    assert.equal(w.document.getElementById('exit-dot').textContent, '· Encerrado com código 1');
+    assert.equal(w.document.getElementById('exit-bare').textContent, 'Encerrado com código 0');
+    assert.equal(w.document.getElementById('exit-comb').textContent, 'Executou npm test · Encerrado com código 1');
+    assert.equal(w.document.getElementById('exit-split').textContent, 'Encerrado com código 1');
+    assert.equal(w.document.getElementById('ctx-folder').textContent, 'Pasta');
+    assert.equal(w.document.getElementById('ctx-drive').textContent, 'Drive');
     assert.equal(w.document.getElementById('lc-folder').textContent, 'folder');
     assert.equal(w.document.getElementById('lc-drive').textContent, 'drive');
-
-    const domTw = createDom(html);
-    t.after(() => domTw.window.close());
-    domTw.window.eval(loadRuntime({ traditional: true }));
-    await settle();
-    assert.equal(domTw.window.document.getElementById('att-title').textContent, '处理以上三个问题 (3 張圖片附件)');
-    assert.equal(domTw.window.document.getElementById('att-single').textContent, '(1 張圖片附件)');
-    assert.equal(domTw.window.document.getElementById('att-file').textContent, '(2 個檔案附件)');
-    assert.equal(domTw.window.document.getElementById('turn-cnt').textContent, '4 / 14');
-    assert.equal(domTw.window.document.getElementById('exit-dot').textContent, '· 已結束，結束碼 1');
-    assert.equal(domTw.window.document.getElementById('exit-bare').textContent, '已結束，結束碼 0');
-    assert.equal(domTw.window.document.getElementById('exit-comb').textContent, '已執行 npm test · 已結束，結束碼 1');
-    assert.equal(domTw.window.document.getElementById('exit-split').textContent, '已結束，結束碼 1');
-    assert.equal(domTw.window.document.getElementById('ctx-folder').textContent, '資料夾');
-    assert.equal(domTw.window.document.getElementById('ctx-drive').textContent, '雲端硬碟');
-    assert.equal(domTw.window.document.getElementById('lc-folder').textContent, 'folder');
-    assert.equal(domTw.window.document.getElementById('lc-drive').textContent, 'drive');
 });

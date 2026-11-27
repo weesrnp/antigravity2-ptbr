@@ -1,15 +1,16 @@
 /**
- * ensure_localized.js — 启动前自检汉化（Windows）
+ * ensure_localized.js - Autoverificação da tradução antes de iniciar (Windows)
  *
- * 背景：Antigravity 自带 electron-updater，autoDownload=true 且 autoInstallOnAppQuit=true，
- * 退出软件时会静默安装已下载的更新包并整包替换 resources\app.asar，汉化随之丢失。
+ * Contexto: o Antigravity usa electron-updater com autoDownload=true e autoInstallOnAppQuit=true;
+ * ao sair do aplicativo, uma atualização baixada pode ser instalada silenciosamente e substituir
+ * resources\app.asar por inteiro, removendo a tradução.
  *
- * 用法：
- *   node scripts/ensure_localized.js                 # 仅检查并报告状态
- *   node scripts/ensure_localized.js --fix           # 未汉化且软件未运行时自动重新注入
- *   node scripts/ensure_localized.js --fix --launch  # 自动修复后启动 Antigravity
- * 支持 --brand-title <mode>、--install-dir <dir>（不支持 --huifu）。
- * 退出码：0 = 已汉化（或已修复）；2 = 未汉化且未修复；1 = 出错或修复失败。
+ * Uso:
+ *   node scripts/ensure_localized.js                 # Apenas verifica e informa o status
+ *   node scripts/ensure_localized.js --fix           # Reaplica a tradução se estiver ausente/desatualizada e o app estiver fechado
+ *   node scripts/ensure_localized.js --fix --launch  # Repara automaticamente e inicia o Antigravity
+ * Aceita --brand-title <mode> e --install-dir <dir> (não aceita --huifu).
+ * Códigos de saída: 0 = traduzido (ou reparado); 2 = não traduzido/desatualizado e não reparado; 1 = erro ou falha no reparo.
  */
 const fs = require('fs');
 const path = require('path');
@@ -29,9 +30,9 @@ const BRAND_TITLE_ALIASES = {
     hide: 'hidden',
     none: 'hidden',
     translated: 'translated',
-    chinese: 'translated',
-    cn: 'translated',
-    zh: 'translated'
+    pt: 'translated',
+    'pt-br': 'translated',
+    ptbr: 'translated'
 };
 
 function createLogger() {
@@ -55,26 +56,26 @@ function parseArgs(argv) {
         } else if (arg === '--launch') {
             launchApp = true;
         } else if (arg === '--huifu') {
-            throw new Error('ensure_localized.js 不支持 --huifu 参数；如需卸载恢复英文原版，请直接运行 localization_engine.js --huifu。');
+            throw new Error('ensure_localized.js não aceita o parâmetro --huifu; para desinstalar e restaurar o original em inglês, execute localization_engine.js --huifu.');
         } else if (arg === '--install-dir') {
             if (i + 1 >= argv.length || !argv[i + 1] || argv[i + 1].startsWith('--')) {
-                throw new Error('--install-dir 缺少有效的路径参数！');
+                throw new Error('--install-dir exige um caminho válido!');
             }
             installDir = argv[++i];
         } else if (arg.startsWith('--install-dir=')) {
             installDir = arg.slice('--install-dir='.length);
             if (!installDir) {
-                throw new Error('--install-dir= 路径不能为空！');
+                throw new Error('O caminho de --install-dir= não pode ficar vazio!');
             }
         } else if (arg === '--brand-title') {
             if (i + 1 >= argv.length || !argv[i + 1] || argv[i + 1].startsWith('--')) {
-                throw new Error('--brand-title 缺少有效的参数值（支持 english / hidden / translated）！');
+                throw new Error('--brand-title exige um valor válido (aceitos: english / hidden / translated)!');
             }
             brandTitle = argv[++i];
         } else if (arg.startsWith('--brand-title=')) {
             brandTitle = arg.slice('--brand-title='.length);
             if (!brandTitle) {
-                throw new Error('--brand-title= 参数值不能为空！');
+                throw new Error('O valor de --brand-title= não pode ficar vazio!');
             }
         } else {
             passthrough.push(arg);
@@ -84,7 +85,7 @@ function parseArgs(argv) {
     if (brandTitle !== null) {
         const normalizedBrand = BRAND_TITLE_ALIASES[brandTitle.toLowerCase()];
         if (!normalizedBrand) {
-            throw new Error(`未识别的 --brand-title 参数值 "${brandTitle}"（支持 english / hidden / translated）。`);
+            throw new Error(`Valor não reconhecido para --brand-title: "${brandTitle}" (aceitos: english / hidden / translated).`);
         }
         brandTitle = normalizedBrand;
     }
@@ -122,7 +123,7 @@ function detectInstallDir(manualDir, execFileSyncFn = child_process.execFileSync
     if (manualDir) {
         const normalized = normalizeInstallDir(manualDir);
         if (!normalized || !hasResources(normalized)) {
-            throw new Error(`手动指定的安装目录无效或未找到 resources\\app.asar: ${manualDir}`);
+            throw new Error(`Diretório de instalação informado manualmente é inválido ou não contém resources\\app.asar: ${manualDir}`);
         }
         return normalized;
     }
@@ -159,7 +160,7 @@ function detectInstallDir(manualDir, execFileSyncFn = child_process.execFileSync
                 if (!m) continue;
                 addCandidate(cleanRegistryIconPath(m[2]));
             }
-        } catch (e) { /* 注册表根可能不存在或无权限，继续尝试其余候选路径 */ }
+        } catch (e) { /* A chave do Registro pode não existir ou não ter permissão; seguir para os próximos caminhos */ }
     }
 
     for (const drive of ['C', 'D', 'E', 'F']) {
@@ -183,7 +184,7 @@ function queryTasklistHasAntigravity(execFileSyncFn) {
         );
         return String(out || '').toLowerCase().includes('antigravity.exe');
     } catch (e) {
-        throw new Error(`无法通过 tasklist 检测 Antigravity.exe 运行状态: ${e.message}`);
+        throw new Error(`Não foi possível verificar o status do Antigravity.exe via tasklist: ${e.message}`);
     }
 }
 
@@ -204,16 +205,16 @@ function isRunning(installDir, execFileSyncFn = child_process.execFileSync) {
             { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 8000 }
         );
     } catch (e) {
-        throw new Error(`检测到 Antigravity.exe 正在运行，但无法查询进程路径，已中止操作以防止文件损坏: ${e.message}`);
+        throw new Error(`Antigravity.exe está em execução, mas não foi possível consultar o caminho do processo; operação cancelada para evitar corromper arquivos: ${e.message}`);
     }
 
     const lines = String(psOut || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     if (lines.includes('__EMPTY_PATH__')) {
-        throw new Error('检测到 Antigravity.exe 正在运行，但无法读取其可执行路径（可能以管理员权限运行）。请先完全退出 Antigravity 后重试。');
+        throw new Error('Antigravity.exe está em execução, mas não foi possível ler o caminho do executável (pode estar rodando como administrador). Feche o Antigravity completamente e tente novamente.');
     }
     if (lines.length === 0) {
         if (queryTasklistHasAntigravity(execFileSyncFn)) {
-            throw new Error('检测到 Antigravity.exe 正在运行，但未能获取任何进程路径。请先完全退出 Antigravity 后重试。');
+            throw new Error('Antigravity.exe está em execução, mas nenhum caminho de processo foi obtido. Feche o Antigravity completamente e tente novamente.');
         }
         return false;
     }
@@ -263,7 +264,7 @@ function saveLocalizationPref(installDir, pref) {
         fs.mkdirSync(path.dirname(prefsPath), { recursive: true });
         fs.writeFileSync(prefsPath, JSON.stringify(data, null, 2), 'utf8');
     } catch (e) {
-        console.warn(`[警告] 保存汉化偏好配置失败: ${e.message}`);
+        console.warn(`[Aviso] Falha ao salvar preferências de tradução: ${e.message}`);
     }
 }
 
@@ -323,12 +324,12 @@ function pendingUpdate() {
 function launch(installDir, logger = createLogger(false), spawnFn = child_process.spawn) {
     const exe = path.join(installDir, 'Antigravity.exe');
     if (!fs.existsSync(exe)) {
-        logger.error(`[错误] 未找到 ${exe}`);
+        logger.error(`[Erro] Não encontrado: ${exe}`);
         return false;
     }
     const child = spawnFn(exe, [], { detached: true, stdio: 'ignore', cwd: installDir });
     if (child && typeof child.unref === 'function') child.unref();
-    logger.log('[启动] 已启动 Antigravity。');
+    logger.log('[Iniciar] Antigravity iniciado.');
     return true;
 }
 
@@ -342,13 +343,13 @@ function main(argv = process.argv.slice(2), deps = {}) {
     try {
         parsed = parseArgs(argv);
     } catch (e) {
-        createLogger().error(`[错误] ${e.message}`);
+        createLogger().error(`[Erro] ${e.message}`);
         return 1;
     }
 
     const earlyLogger = createLogger();
     if (platform !== 'win32') {
-        earlyLogger.log('[提示] 自检启动器目前仅支持 Windows；macOS 请在更新后重新运行 双击安装中文汉化.command。');
+        earlyLogger.log('[Aviso] O inicializador de autoverificação só oferece suporte ao Windows no momento; no macOS, execute novamente Instalar-pt-BR.command após atualizar.');
         return 1;
     }
 
@@ -356,11 +357,11 @@ function main(argv = process.argv.slice(2), deps = {}) {
     try {
         installDir = detectInstallDir(parsed.installDir, execFileSyncFn);
     } catch (e) {
-        earlyLogger.error(`[错误] ${e.message}`);
+        earlyLogger.error(`[Erro] ${e.message}`);
         return 1;
     }
     if (!installDir) {
-        earlyLogger.error('[错误] 未找到 Antigravity 安装目录，可用 --install-dir 指定。');
+        earlyLogger.error('[Erro] Diretório de instalação do Antigravity não encontrado; use --install-dir para especificar.');
         return 1;
     }
 
@@ -371,7 +372,7 @@ function main(argv = process.argv.slice(2), deps = {}) {
     const logger = createLogger();
 
     if (prefs.inherited) {
-        logger.log(`[偏好] 沿用已保存的汉化配置: brand-title=${prefs.brandTitle}`);
+        logger.log(`[Preferência] Mantendo configuração de tradução salva: brand-title=${prefs.brandTitle}`);
     }
     if (localized || parsed.brandTitle !== null) {
         saveLocalizationPref(installDir, prefs);
@@ -381,26 +382,26 @@ function main(argv = process.argv.slice(2), deps = {}) {
     try {
         running = isRunning(installDir, execFileSyncFn);
     } catch (e) {
-        logger.error(`[错误] ${e.message}`);
+        logger.error(`[Erro] ${e.message}`);
         return 1;
     }
 
     const pending = pendingUpdate();
     const statusText = !localized
-        ? '未汉化（可能已被官方自动更新覆盖）'
-        : (upToDate ? '已汉化' : '已汉化（检测到本地词库或引擎已更新，需同步刷新）');
-    logger.log(`[检测] 安装目录: ${installDir}`);
-    logger.log(`[检测] 汉化状态: ${statusText}`);
-    logger.log(`[检测] 运行状态: ${running ? '正在运行' : '未运行'}`);
+        ? 'Não traduzido (pode ter sido sobrescrito pela atualização automática oficial)'
+        : (upToDate ? 'Traduzido' : 'Traduzido (dicionário ou motor local atualizado; sincronização necessária)');
+    logger.log(`[Verificação] Diretório de instalação: ${installDir}`);
+    logger.log(`[Verificação] Status da tradução: ${statusText}`);
+    logger.log(`[Verificação] Status de execução: ${running ? 'Em execução' : 'Parado'}`);
     if (pending) {
-        logger.log(`[提示] 检测到已下载的官方更新包: ${pending}`);
-        logger.log('       退出 Antigravity 时它会被静默安装并覆盖汉化；下次通过本启动器打开会自动修复。');
+        logger.log(`[Aviso] Pacote de atualização oficial baixado detectado: ${pending}`);
+        logger.log('        Ao sair do Antigravity, ele será instalado silenciosamente e sobrescreverá a tradução; na próxima abertura por este inicializador, o reparo será automático.');
     }
 
     let fixFailed = false;
     if ((!localized || !upToDate) && parsed.fix) {
         if (running) {
-            logger.log('[跳过] Antigravity 正在运行，为避免强制关闭您的会话，本次不自动修复。请完全退出后再运行。');
+            logger.log('[Ignorado] O Antigravity está em execução; o reparo automático foi ignorado para não encerrar sua sessão à força. Feche o aplicativo completamente e execute novamente.');
         } else {
             const engineArgs = [
                 '--brand-title',
@@ -412,7 +413,7 @@ function main(argv = process.argv.slice(2), deps = {}) {
             for (const extra of parsed.passthrough) {
                 if (extra !== '--no-kill') engineArgs.push(extra);
             }
-            logger.log(`[修复] 正在重新注入汉化: node localization_engine.js ${engineArgs.join(' ')}`);
+            logger.log(`[Reparo] Reaplicando a tradução: node localization_engine.js ${engineArgs.join(' ')}`);
             const res = spawnSyncFn(
                 process.execPath,
                 [path.join(ROOT, 'localization_engine.js'), ...engineArgs],
@@ -422,10 +423,10 @@ function main(argv = process.argv.slice(2), deps = {}) {
             upToDate = localized && isLocalizationCurrent(asarPath, prefs);
             if (localized) {
                 saveLocalizationPref(installDir, prefs);
-                logger.log('[√] 汉化已恢复。');
+                logger.log('[OK] Tradução restaurada.');
             } else {
                 fixFailed = true;
-                logger.error(`[×] 重新注入失败（退出码 ${res.status ?? 1}），已中止启动客户端，请查看上方信息。`);
+                logger.error(`[ERRO] Falha ao reaplicar a tradução (código de saída ${res.status ?? 1}); inicialização cancelada. Verifique as mensagens acima.`);
                 return 1;
             }
         }
@@ -433,9 +434,9 @@ function main(argv = process.argv.slice(2), deps = {}) {
 
     if (parsed.launch) {
         if (running) {
-            logger.log('[提示] Antigravity 已在运行，未重复启动。');
+            logger.log('[Aviso] O Antigravity já está em execução; não foi iniciado novamente.');
         } else if (!localized || fixFailed) {
-            logger.error('[×] 客户端当前未汉化，已中止启动（请使用 --fix 自动修复后再启动）。');
+            logger.error('[ERRO] O cliente não está traduzido no momento; inicialização cancelada (use --fix para reparar automaticamente antes de iniciar).');
             return 2;
         } else if (!launch(installDir, logger, spawnFn)) {
             return 1;
@@ -475,7 +476,7 @@ if (require.main === module) {
     try {
         process.exitCode = main();
     } catch (e) {
-        console.error('[错误]', e.message);
+        console.error('[Erro]', e.message);
         process.exitCode = 1;
     }
 }

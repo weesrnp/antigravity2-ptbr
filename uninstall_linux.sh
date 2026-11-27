@@ -4,7 +4,7 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
-# 补充 Linux 常见 Node.js 与版本管理器路径 (兼容 sudo 与 nvm/fnm/volta/asdf/mise)
+# Inclui os caminhos comuns do Node.js e dos gerenciadores de versão, inclusive com sudo.
 REAL_USER="${SUDO_USER:-${USER:-}}"
 REAL_HOME=""
 if [ -n "$REAL_USER" ] && command -v getent >/dev/null 2>&1; then
@@ -29,7 +29,7 @@ for p in \
 do
     [ -d "$p" ] && export PATH="$p:$PATH"
 done
-# 按版本号升序排序后再按版本门槛前置到 PATH（避免旧版 nvm 覆盖新版 Node）
+# Ordena as versões e dá preferência ao Node.js mais recente no PATH.
 CURR_NODE_MAJOR=0
 if command -v node >/dev/null 2>&1; then
     CURR_NODE_MAJOR=$(node -v 2>/dev/null | sed -n 's/^v\([0-9]*\).*/\1/p')

@@ -10,7 +10,7 @@ const path = require('path');
 const dictsDir = path.join(__dirname, '../dicts');
 
 // Ideogramas, kana, hangul e pontuação de largura total
-const CJK_REGEX = /[⺀-鿿　-〿가-힯＀-￯]/;
+const CJK_REGEX = /[\u2e80-\u9fff\u3000-\u303f\uac00-\ud7af\uff00-\uffef]/;
 // Trechos que a tradução tem de manter iguais ao inglês
 const TOKEN_REGEX = /\{[^{}]*\}|%\d*\$?[sdif]|\$\{[^}]*\}|https?:\/\/[^\s)"']+|<\/?[a-zA-Z][^>]*>|`[^`]+`/g;
 
@@ -58,7 +58,7 @@ function compareDicts(targetDictsDir = dictsDir) {
         let raw;
         try {
             raw = fs.readFileSync(path.join(targetDictsDir, file), 'utf8');
-            data = JSON.parse(raw.replace(/^﻿/, ''));
+            data = JSON.parse(raw.replace(/^\uFEFF/, ''));
         } catch (e) {
             error(`Erro ao ler ${file}: ${e.message}`);
             continue;

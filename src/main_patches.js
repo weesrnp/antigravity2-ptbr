@@ -32,12 +32,12 @@ function cleanUtilsJsContent(content) {
 }
 
 function patchUtilsJs(utilsContent, signatureStart, signatureEnd) {
-    console.log(`[修改] 正在向 utils.js 注入伴生面板 (Sidecar) 汉化钩子...`);
+    console.log(`[patch] Injetando o gancho de tradução do painel Sidecar em utils.js...`);
     const cleaned = cleanUtilsJsContent(utilsContent);
     const targetStr = "hubContents.on('will-navigate', guardExternalNavigation);";
     const idx = cleaned.indexOf(targetStr);
     if (idx === -1) {
-        console.warn(`[警告] 未能在 utils.js 中找到 Sidecar 钩子插入点。`);
+        console.warn(`[aviso] Ponto de inserção do gancho do Sidecar não encontrado em utils.js.`);
         return cleaned;
     }
 
@@ -108,7 +108,7 @@ function patchUtilsJs(utilsContent, signatureStart, signatureEnd) {
                     return frame.executeJavaScript(script);
                 })
                 .catch((err) => {
-                    console.warn('[汉化] Sidecar 注入失败:', err && err.message ? err.message : err);
+                    console.warn('[tradução] Falha na injeção no Sidecar:', err && err.message ? err.message : err);
                 });
         } catch (_err) {}
     };
@@ -130,20 +130,20 @@ function patchUtilsJs(utilsContent, signatureStart, signatureEnd) {
     }
     /* --- SIDECAR TRANSLATION END --- */`;
 
-    console.log(`[修改] 伴生面板 (Sidecar) 汉化钩子注入成功！`);
+    console.log(`[patch] Gancho de tradução do painel Sidecar injetado com sucesso!`);
     return cleaned.substring(0, idx) + sidecarHookJs + "\n    " + cleaned.substring(idx);
 }
 
 function patchPreloadJs(content, translationJs, signatureStart, signatureEnd) {
-    console.log(`[修改] 正在向 preload.js 注入汉化代码...`);
+    console.log(`[patch] Injetando o código de tradução em preload.js...`);
     const cleanedContent = cleanJsContent(content, signatureStart, signatureEnd);
     const newContent = cleanedContent + "\n;\n" + translationJs;
-    console.log(`[修改] 注入成功！`);
+    console.log(`[patch] Injeção concluída!`);
     return newContent;
 }
 
 function patchMenuJs(menuContent) {
-    console.log(`[修改] 正在向 menu.js 注入菜单汉化代码...`);
+    console.log(`[patch] Injetando o código de tradução do menu em menu.js...`);
     const menuCleaned = cleanMenuJsContent(menuContent);
 
     const menuTranslationJs = `
@@ -152,192 +152,192 @@ function patchMenuJs(menuContent) {
     // Antigravity Native Menu Chinese Translation
     // ==========================================
     const translations = ${`{
-        'File': '文件',
-        'Edit': '编辑',
-        'View': '视图',
-        'Window': '窗口',
-        'Help': '帮助',
-        'New Window': '新建窗口',
-        'Create Project': '创建项目',
-        'Command Palette': '命令面板',
-        'Docs': '文档',
-        'Check for Updates': '检查更新',
-        'Checking for Updates...': '正在检查更新...',
-        'Downloading Update...': '正在下载更新...',
-        'Restart to Update': '重启以更新',
-        'Toggle Developer Tools': '切换开发者工具',
-        'Undo': '撤销',
-        'Redo': '重做',
-        'Cut': '剪切',
-        'Copy': '复制',
-        'Paste': '粘贴',
-        'Select All': '全选',
-        'Minimize': '最小化',
-        'Maximize': '最大化',
-        'Close': '关闭',
-        'Zoom': '缩放',
-        'Reset Zoom': '重置缩放',
-        'Actual Size': '实际大小',
-        'Zoom In': '放大',
-        'Zoom Out': '缩小',
-        'Toggle Full Screen': '切换全屏',
-        'Toggle Between Light/Dark Themes': '切换浅色/深色主题',
-        'Split Terminal': '拆分终端',
-        'Split Conversation Horizontally': '水平拆分会话',
-        'Split Conversation Vertically': '垂直拆分会话',
-        'Split': '拆分',
-        'Split Right': '向右拆分',
-        'Split Down': '向下拆分',
-        'Replace With New': '替换为新会话',
-        'Show in File Explorer': '在文件资源管理器中显示',
-        'Reveal in Finder': '在访达中显示',
-        'Find in conversation': '在会话中查找',
-        'Connect to WSL': '连接到 WSL',
-        'Reopen Locally': '在本地重新打开',
-        'About Antigravity': '关于 Antigravity',
-        'Settings...': '设置...',
-        'Preferences...': '首选项...',
-        'Services': '服务',
-        'Hide Antigravity': '隐藏 Antigravity',
-        'Hide Others': '隐藏其他',
-        'Show All': '全部显示',
-        'Quit Antigravity': '退出 Antigravity',
-        'Quit': '退出',
-        'Paste and Match Style': '粘贴并匹配样式',
-        'Delete': '删除',
-        'Bring All to Front': '前置全部窗口',
-        'Close Window': '关闭窗口',
-        'Version': '版本',
-        'Reload': '重新加载',
-        'Force Reload': '强制重新加载',
-        'Substitutions': '替换',
-        'Show Substitutions': '显示替换',
-        'Smart Quotes': '智能引号',
-        'Smart Dashes': '智能破折号',
-        'Text Replacement': '文本替换',
-        'Speech': '语音',
-        'Start Speaking': '开始朗读',
-        'Stop Speaking': '停止朗读',
-        'Reload Window': '重新加载窗口',
-        'Toggle Fullscreen': '切换全屏',
-        'Toggle Full-Screen': '切换全屏',
-        'Enter Full Screen': '进入全屏',
-        'Exit Full Screen': '退出全屏',
-        'Appearance': '外观',
-        'Select Theme': '选择主题',
-        'Toggle Sidebar': '切换侧边栏',
-        'Customize Sidebar': '自定义侧边栏',
-        'Toggle Aux Pane': '切换辅助面板',
-        'Toggle Terminal': '切换终端',
-        'Toggle Secondary Side Bar': '切换次侧边栏',
-        'Open Command Palette': '打开命令面板',
-        'Open Launchpad': '打开启动台',
-        'Open Project Picker': '打开项目选择器',
-        'Open Conversation History': '打开会话历史',
-        'Open Keyboard Shortcuts': '打开键盘快捷键',
-        'Keyboard Shortcuts': '键盘快捷键',
-        'Remove From Split': '退出拆分',
-        'Remove from Split': '从拆分视图中移除',
-        'Equalize Split Panes': '均分拆分面板',
-        'Next Aux Pane Tab': '下一个辅助面板标签页',
-        'Previous Aux Pane Tab': '上一个辅助面板标签页',
-        'Collapse All Folders': '折叠所有文件夹',
-        'Expand All Folders': '展开所有文件夹',
-        'Word Wrap': '自动换行',
-        'Toggle Word Wrap': '切换自动换行',
-        'Front': '前置全部窗口',
-        'Show Previous Tab': '显示上一个标签页',
-        'Show Next Tab': '显示下一个标签页',
-        'Move Tab to New Window': '将标签页移至新窗口',
-        'Merge All Windows': '合并所有窗口',
-        'Tile Window to Left of Screen': '将窗口拼贴到屏幕左侧',
-        'Tile Window to Right of Screen': '将窗口拼贴到屏幕右侧',
-        'Move Window to Left Side of Screen': '将窗口移到屏幕左侧',
-        'Move Window to Right Side of Screen': '将窗口移到屏幕右侧',
-        'Fill': '填充',
-        'Center': '居中',
-        'Move & Resize': '移动并调整大小',
-        'New Conversation': '新建会话',
-        'New Remote Window': '新建远程窗口',
-        'New Editor Window': '新建编辑器窗口',
-        'New Tab': '新建标签页',
-        'New Terminal Tab': '新建终端标签页',
-        'Open...': '打开...',
-        'Open Folder...': '打开文件夹...',
-        'Open Folder': '打开文件夹',
-        'Open Workspace...': '打开工作区...',
-        'Open Workspace': '打开工作区',
-        'Open Recent': '打开最近项',
-        'Clear Menu': '清除菜单',
-        'Clear Recently Opened': '清除最近打开记录',
-        'Save': '保存',
-        'Save As...': '另存为...',
-        'Save All': '全部保存',
-        'Revert File': '恢复文件',
-        'Close Tab': '关闭标签页',
-        'Close Editor': '关闭编辑器',
-        'Close Folder': '关闭文件夹',
-        'Close Project': '关闭项目',
-        'Connect to Remote...': '连接到远程...',
-        'Connect to Remote Workspace': '连接到远程工作区',
-        'Connect to SSH...': '连接到 SSH...',
-        'Show in File Manager': '在文件管理器中显示',
-        'Open in Editor': '在编辑器中打开',
-        'Exit': '退出',
-        'Find': '查找',
-        'Find...': '查找...',
-        'Find in Conversation': '在会话中查找',
-        'Find Next': '查找下一个',
-        'Find Previous': '查找上一个',
-        'Replace': '替换',
-        'Replace...': '替换...',
-        'Spelling and Grammar': '拼写和语法',
-        'Show Spelling and Grammar': '显示拼写和语法',
-        'Check Document Now': '立即检查文稿',
-        'Check Spelling While Typing': '键入时检查拼写',
-        'Check Grammar With Spelling': '检查拼写和语法',
-        'Correct Spelling Automatically': '自动纠正拼写',
-        'Smart Copy/Paste': '智能拷贝/粘贴',
-        'Smart Links': '智能链接',
-        'Data Detectors': '数据检测器',
-        'Transformations': '转换',
-        'Make Upper Case': '变为大写',
-        'Make Lower Case': '变为小写',
-        'Capitalize': '首字母大写',
-        'Start Dictation...': '开始听写...',
-        'Emoji & Symbols': '表情与符号',
-        'Copy conversation markdown': '复制会话 Markdown',
-        'Copy Conversation Markdown': '复制会话 Markdown',
-        'Check for Updates...': '检查更新...',
-        'Download Update': '下载更新',
-        'Restart to Update...': '重启以更新...',
-        'Settings': '设置',
-        'Preferences': '首选项',
-        'Open Settings': '打开设置',
-        'Hide': '隐藏',
-        'Sign In': '登录',
-        'Sign Out': '退出登录',
-        'Sign out': '退出登录',
-        'Install Shell Command': '安装命令行工具',
-        'Install IDE': '安装 IDE',
-        'Documentation': '文档',
-        'Release Notes': '发行说明',
-        'Report Issue': '报告问题',
-        'Send Feedback': '发送反馈',
-        'Provide Feedback': '提供反馈',
-        'Download Diagnostics': '下载诊断信息',
-        'Show Logs': '显示日志',
-        'Open Logs Folder': '打开日志文件夹',
-        'About': '关于',
-        'Privacy Policy': '隐私政策',
-        'Terms of Service': '服务条款',
-        'License': '许可证',
-        'Developer': '开发者',
-        'Developer: Reset NUX': '开发者：重置新用户引导',
-        'Developer: Reset Onboarding': '开发者：重置初始引导',
-        'Restart Main Language Server': '重启主语言服务器',
-        'Clear Cache': '清除缓存',
-        'View Usage': '查看用量'
+        'File': 'Arquivo',
+        'Edit': 'Editar',
+        'View': 'Exibir',
+        'Window': 'Janela',
+        'Help': 'Ajuda',
+        'New Window': 'Nova janela',
+        'Create Project': 'Criar projeto',
+        'Command Palette': 'Paleta de comandos',
+        'Docs': 'Documentação',
+        'Check for Updates': 'Verificar atualizações',
+        'Checking for Updates...': 'Verificando atualizações...',
+        'Downloading Update...': 'Baixando atualização...',
+        'Restart to Update': 'Reiniciar para atualizar',
+        'Toggle Developer Tools': 'Alternar ferramentas do desenvolvedor',
+        'Undo': 'Desfazer',
+        'Redo': 'Refazer',
+        'Cut': 'Recortar',
+        'Copy': 'Copiar',
+        'Paste': 'Colar',
+        'Select All': 'Selecionar tudo',
+        'Minimize': 'Minimizar',
+        'Maximize': 'Maximizar',
+        'Close': 'Fechar',
+        'Zoom': 'Zoom',
+        'Reset Zoom': 'Redefinir zoom',
+        'Actual Size': 'Tamanho real',
+        'Zoom In': 'Ampliar',
+        'Zoom Out': 'Reduzir',
+        'Toggle Full Screen': 'Alternar tela cheia',
+        'Toggle Between Light/Dark Themes': 'Alternar entre tema claro/escuro',
+        'Split Terminal': 'Dividir terminal',
+        'Split Conversation Horizontally': 'Dividir conversa horizontalmente',
+        'Split Conversation Vertically': 'Dividir conversa verticalmente',
+        'Split': 'Dividir',
+        'Split Right': 'Dividir à direita',
+        'Split Down': 'Dividir abaixo',
+        'Replace With New': 'Substituir por nova conversa',
+        'Show in File Explorer': 'Mostrar no Explorador de Arquivos',
+        'Reveal in Finder': 'Mostrar no Finder',
+        'Find in conversation': 'Localizar na conversa',
+        'Connect to WSL': 'Conectar ao WSL',
+        'Reopen Locally': 'Reabrir localmente',
+        'About Antigravity': 'Sobre o Antigravity',
+        'Settings...': 'Configurações...',
+        'Preferences...': 'Preferências...',
+        'Services': 'Serviços',
+        'Hide Antigravity': 'Ocultar Antigravity',
+        'Hide Others': 'Ocultar outros',
+        'Show All': 'Mostrar tudo',
+        'Quit Antigravity': 'Sair do Antigravity',
+        'Quit': 'Sair',
+        'Paste and Match Style': 'Colar e corresponder ao estilo',
+        'Delete': 'Excluir',
+        'Bring All to Front': 'Trazer tudo para a frente',
+        'Close Window': 'Fechar janela',
+        'Version': 'Versão',
+        'Reload': 'Recarregar',
+        'Force Reload': 'Forçar recarregamento',
+        'Substitutions': 'Substituições',
+        'Show Substitutions': 'Mostrar substituições',
+        'Smart Quotes': 'Aspas inteligentes',
+        'Smart Dashes': 'Travessões inteligentes',
+        'Text Replacement': 'Substituição de texto',
+        'Speech': 'Fala',
+        'Start Speaking': 'Começar a falar',
+        'Stop Speaking': 'Parar de falar',
+        'Reload Window': 'Recarregar janela',
+        'Toggle Fullscreen': 'Alternar tela cheia',
+        'Toggle Full-Screen': 'Alternar tela cheia',
+        'Enter Full Screen': 'Entrar em tela cheia',
+        'Exit Full Screen': 'Sair da tela cheia',
+        'Appearance': 'Aparência',
+        'Select Theme': 'Selecionar tema',
+        'Toggle Sidebar': 'Alternar barra lateral',
+        'Customize Sidebar': 'Personalizar barra lateral',
+        'Toggle Aux Pane': 'Alternar painel auxiliar',
+        'Toggle Terminal': 'Alternar terminal',
+        'Toggle Secondary Side Bar': 'Alternar barra lateral secundária',
+        'Open Command Palette': 'Abrir paleta de comandos',
+        'Open Launchpad': 'Abrir Launchpad',
+        'Open Project Picker': 'Abrir seletor de projetos',
+        'Open Conversation History': 'Abrir histórico de conversas',
+        'Open Keyboard Shortcuts': 'Abrir atalhos de teclado',
+        'Keyboard Shortcuts': 'Atalhos de teclado',
+        'Remove From Split': 'Sair da divisão',
+        'Remove from Split': 'Remover da divisão',
+        'Equalize Split Panes': 'Igualar painéis divididos',
+        'Next Aux Pane Tab': 'Próxima aba do painel auxiliar',
+        'Previous Aux Pane Tab': 'Aba anterior do painel auxiliar',
+        'Collapse All Folders': 'Recolher todas as pastas',
+        'Expand All Folders': 'Expandir todas as pastas',
+        'Word Wrap': 'Quebra automática de linha',
+        'Toggle Word Wrap': 'Alternar quebra automática de linha',
+        'Front': 'Trazer tudo para a frente',
+        'Show Previous Tab': 'Mostrar aba anterior',
+        'Show Next Tab': 'Mostrar próxima aba',
+        'Move Tab to New Window': 'Mover aba para nova janela',
+        'Merge All Windows': 'Mesclar todas as janelas',
+        'Tile Window to Left of Screen': 'Ladrilhar janela à esquerda da tela',
+        'Tile Window to Right of Screen': 'Ladrilhar janela à direita da tela',
+        'Move Window to Left Side of Screen': 'Mover janela para o lado esquerdo da tela',
+        'Move Window to Right Side of Screen': 'Mover janela para o lado direito da tela',
+        'Fill': 'Preencher',
+        'Center': 'Centralizar',
+        'Move & Resize': 'Mover e redimensionar',
+        'New Conversation': 'Nova conversa',
+        'New Remote Window': 'Nova janela remota',
+        'New Editor Window': 'Nova janela do editor',
+        'New Tab': 'Nova aba',
+        'New Terminal Tab': 'Nova aba de terminal',
+        'Open...': 'Abrir...',
+        'Open Folder...': 'Abrir pasta...',
+        'Open Folder': 'Abrir pasta',
+        'Open Workspace...': 'Abrir espaço de trabalho...',
+        'Open Workspace': 'Abrir espaço de trabalho',
+        'Open Recent': 'Abrir recente',
+        'Clear Menu': 'Limpar menu',
+        'Clear Recently Opened': 'Limpar itens abertos recentemente',
+        'Save': 'Salvar',
+        'Save As...': 'Salvar como...',
+        'Save All': 'Salvar tudo',
+        'Revert File': 'Reverter arquivo',
+        'Close Tab': 'Fechar aba',
+        'Close Editor': 'Fechar editor',
+        'Close Folder': 'Fechar pasta',
+        'Close Project': 'Fechar projeto',
+        'Connect to Remote...': 'Conectar ao remoto...',
+        'Connect to Remote Workspace': 'Conectar a espaço de trabalho remoto',
+        'Connect to SSH...': 'Conectar ao SSH...',
+        'Show in File Manager': 'Mostrar no gerenciador de arquivos',
+        'Open in Editor': 'Abrir no editor',
+        'Exit': 'Sair',
+        'Find': 'Localizar',
+        'Find...': 'Localizar...',
+        'Find in Conversation': 'Localizar na conversa',
+        'Find Next': 'Localizar próximo',
+        'Find Previous': 'Localizar anterior',
+        'Replace': 'Substituir',
+        'Replace...': 'Substituir...',
+        'Spelling and Grammar': 'Ortografia e gramática',
+        'Show Spelling and Grammar': 'Mostrar ortografia e gramática',
+        'Check Document Now': 'Verificar documento agora',
+        'Check Spelling While Typing': 'Verificar ortografia ao digitar',
+        'Check Grammar With Spelling': 'Verificar gramática com ortografia',
+        'Correct Spelling Automatically': 'Corrigir ortografia automaticamente',
+        'Smart Copy/Paste': 'Copiar/colar inteligente',
+        'Smart Links': 'Links inteligentes',
+        'Data Detectors': 'Detectores de dados',
+        'Transformations': 'Transformações',
+        'Make Upper Case': 'Converter em maiúsculas',
+        'Make Lower Case': 'Converter em minúsculas',
+        'Capitalize': 'Iniciais maiúsculas',
+        'Start Dictation...': 'Iniciar ditado...',
+        'Emoji & Symbols': 'Emojis e símbolos',
+        'Copy conversation markdown': 'Copiar Markdown da conversa',
+        'Copy Conversation Markdown': 'Copiar Markdown da conversa',
+        'Check for Updates...': 'Verificar atualizações...',
+        'Download Update': 'Baixar atualização',
+        'Restart to Update...': 'Reiniciar para atualizar...',
+        'Settings': 'Configurações',
+        'Preferences': 'Preferências',
+        'Open Settings': 'Abrir configurações',
+        'Hide': 'Ocultar',
+        'Sign In': 'Entrar',
+        'Sign Out': 'Sair',
+        'Sign out': 'Sair',
+        'Install Shell Command': 'Instalar comando de shell',
+        'Install IDE': 'Instalar IDE',
+        'Documentation': 'Documentação',
+        'Release Notes': 'Notas de versão',
+        'Report Issue': 'Relatar problema',
+        'Send Feedback': 'Enviar feedback',
+        'Provide Feedback': 'Enviar feedback',
+        'Download Diagnostics': 'Baixar diagnóstico',
+        'Show Logs': 'Mostrar logs',
+        'Open Logs Folder': 'Abrir pasta de logs',
+        'About': 'Sobre',
+        'Privacy Policy': 'Política de privacidade',
+        'Terms of Service': 'Termos de serviço',
+        'License': 'Licença',
+        'Developer': 'Desenvolvedor',
+        'Developer: Reset NUX': 'Desenvolvedor: redefinir introdução para novos usuários',
+        'Developer: Reset Onboarding': 'Desenvolvedor: redefinir integração inicial',
+        'Restart Main Language Server': 'Reiniciar servidor de linguagem principal',
+        'Clear Cache': 'Limpar cache',
+        'View Usage': 'Ver uso'
     }`};
     const lowerTranslations = Object.create(null);
     for (const [k, v] of Object.entries(translations)) {
@@ -360,7 +360,7 @@ function patchMenuJs(menuContent) {
             if (hit) {
                 item.label = hit + mnemonic;
             } else if (/^Version\\s*([\\d\\.]*)$/i.test(cleanLabel)) {
-                item.label = cleanLabel.replace(/^Version\\s*([\\d\\.]*)$/i, (match, v) => v ? "版本 " + v : "版本");
+                item.label = cleanLabel.replace(/^Version\\s*([\\d\\.]*)$/i, (match, v) => v ? "Versão " + v : "Versão");
             }
             if (item.submenu && item.submenu.items) {
                 translateMenu(item.submenu.items);
@@ -393,25 +393,25 @@ function patchMenuJs(menuContent) {
     const targetStr = "electron_1.Menu.setApplicationMenu(menu);";
     const idx = menuCleaned.indexOf(targetStr);
     if (idx !== -1) {
-        console.log(`[修改] 菜单汉化注入成功！`);
+        console.log(`[patch] Tradução do menu injetada com sucesso!`);
         return menuCleaned.substring(0, idx) + menuTranslationJs + "\n    " + menuCleaned.substring(idx);
     } else {
-        console.warn(`[警告] 未能在 menu.js 中找到设定的插入点。`);
+        console.warn(`[aviso] Ponto de inserção não encontrado em menu.js.`);
         return menuCleaned;
     }
 }
 
 function patchTrayJs(trayContent) {
-    console.log(`[修改] 正在向 tray.js 注入任务栏菜单汉化...`);
+    console.log(`[patch] Injetando a tradução do menu da bandeja em tray.js...`);
     let trayCleaned = cleanTrayJsContent(trayContent);
     const trayTranslationsJson = JSON.stringify({
-        'No agents running': '无运行中的智能体',
-        'Open Antigravity': '打开 Antigravity',
-        'Connect to WSL': '连接到 WSL',
-        'Reopen Locally': '在本地重新打开',
-        'Quit': '退出'
+        'No agents running': 'Nenhum agente em execução',
+        'Open Antigravity': 'Abrir Antigravity',
+        'Connect to WSL': 'Conectar ao WSL',
+        'Reopen Locally': 'Reabrir localmente',
+        'Quit': 'Sair'
     });
-    const openPrefix = '打开 ';
+    const openPrefix = 'Abrir ';
 
     const targetCreate = /function\s+createTray\s*\(([^)]*)\)\s*\{/;
     const replacementCreate = (match, args) => `function createTray(${args}) {
@@ -435,14 +435,14 @@ function patchTrayJs(trayContent) {
         return replacementCreate(...m);
     });
     if (hitCount === 0) {
-        console.warn(`[警告] 未能在 tray.js 中找到 createTray 函数插入点。`);
+        console.warn(`[aviso] Função createTray não encontrada em tray.js.`);
     }
 
     const dblClickTarget = /tray\.setContextMenu\(contextMenu\);/;
     const dblClickReplacement = `tray.setContextMenu(contextMenu);
     /* --- TRAY DOUBLE CLICK START --- */
     if (typeof actions !== 'undefined' && Array.isArray(actions) && typeof tray !== 'undefined' && tray && typeof tray.on === 'function') {
-        const openAction = actions.find(item => item && typeof item.click === 'function' && !['Quit', '退出', '結束'].includes(item.label));
+        const openAction = actions.find(item => item && typeof item.click === 'function' && !['Quit', 'Sair'].includes(item.label));
         if (openAction) {
             tray.on('double-click', () => {
                 const wins = electron_1.BrowserWindow.getAllWindows();
@@ -460,7 +460,7 @@ function patchTrayJs(trayContent) {
     });
 
     const countRegex = /countItem\.label\s*=\s*\([^;]{0,300}' running';/g;
-    const replacementCount = "countItem.label = count > 0 ? `${count} 个智能体运行中` : '无运行中的智能体';";
+    const replacementCount = "countItem.label = count > 0 ? `${count} ${count === 1 ? 'agente em execução' : 'agentes em execução'}` : 'Nenhum agente em execução';";
     trayPatched = trayPatched.replace(countRegex, (match) => {
         hitCount++;
         return `/* --- TRAY COUNT START:${Buffer.from(match, 'utf8').toString('base64')} --- */ ${replacementCount} /* --- TRAY COUNT END --- */`;
@@ -484,9 +484,9 @@ function patchTrayJs(trayContent) {
     });
 
     if (hitCount > 0) {
-        console.log(`[修改] 任务栏菜单汉化注入成功（${hitCount} 处）！`);
+        console.log(`[patch] Tradução do menu da bandeja injetada com sucesso (${hitCount} pontos)!`);
     } else {
-        console.warn(`[警告] 未能在 tray.js 中命中任何任务栏注入点。`);
+        console.warn(`[aviso] Nenhum ponto de injeção da bandeja encontrado em tray.js.`);
     }
     return trayPatched;
 }
@@ -495,859 +495,860 @@ function patchLoadingOverlayJs(loadingContent) {
     if (!loadingContent.includes('<div class="text">')) {
         return loadingContent;
     }
-    console.log(`[修改] 正在向 loadingOverlay.js 注入加载页汉化...`);
-    const replacementText = '<div class="text">正在加载 Antigravity…</div>';
+    console.log(`[patch] Injetando a tradução da tela de carregamento em loadingOverlay.js...`);
+    const replacementText = '<div class="text">Carregando o Antigravity...</div>';
 
     const out = loadingContent
         .replace('<div class="text">Loading Antigravity</div>', replacementText)
-        .replace('<div class="text">反重力引擎已啟動，正在努力擺脫地心引力...</div>', replacementText)
-        .replace('<div class="text">反重力引擎已启动，正在努力摆脱地心引力...</div>', replacementText);
+        // texto de instalações anteriores (outro idioma): troca qualquer texto do bloco
+        .replace(/<div class="text">[^<]*<\/div>/, replacementText);
 
     if (out !== loadingContent) {
-        console.log(`[修改] 加载页汉化注入成功！`);
+        console.log(`[patch] Tradução da tela de carregamento injetada com sucesso!`);
     } else {
-        console.warn(`[警告] 未能在 loadingOverlay.js 中找到加载页文本插入点。`);
+        console.warn(`[aviso] Texto da tela de carregamento não encontrado em loadingOverlay.js.`);
     }
     return out;
 }
 
 function patchUpdaterJs(updaterContent) {
-    console.log(`[修改] 正在向 updater.js 注入更新弹窗汉化...`);
+    console.log(`[patch] Injetando a tradução da janela de atualização em updater.js...`);
     const targetOptions = `                title: 'Check for Updates',
                 message: 'No updates available',
                 buttons: ['OK'],`;
-    const replacementOptions = `                title: '检查更新',
-                message: '暂无可用更新',
-                buttons: ['确定'],`;
+    const replacementOptions = `                title: 'Verificar atualizações',
+                message: 'Nenhuma atualização disponível',
+                buttons: ['OK'],`;
 
     const out = updaterContent
         .replace(targetOptions, replacementOptions)
-        .replace('MenuUpdateStep["CheckForUpdates"] = "Check for Updates";', `MenuUpdateStep["CheckForUpdates"] = ${'"检查更新"'};`)
-        .replace('MenuUpdateStep["CheckingForUpdates"] = "Checking for Updates...";', `MenuUpdateStep["CheckingForUpdates"] = ${'"正在检查更新..."'};`)
-        .replace('MenuUpdateStep["DownloadingUpdate"] = "Downloading Update...";', `MenuUpdateStep["DownloadingUpdate"] = ${'"正在下载更新..."'};`)
-        .replace('MenuUpdateStep["RestartToUpdate"] = "Restart to Update";', `MenuUpdateStep["RestartToUpdate"] = ${'"重启以更新"'};`);
+        .replace('MenuUpdateStep["CheckForUpdates"] = "Check for Updates";', `MenuUpdateStep["CheckForUpdates"] = ${'"Verificar atualizações"'};`)
+        .replace('MenuUpdateStep["CheckingForUpdates"] = "Checking for Updates...";', `MenuUpdateStep["CheckingForUpdates"] = ${'"Verificando atualizações..."'};`)
+        .replace('MenuUpdateStep["DownloadingUpdate"] = "Downloading Update...";', `MenuUpdateStep["DownloadingUpdate"] = ${'"Baixando atualização..."'};`)
+        .replace('MenuUpdateStep["RestartToUpdate"] = "Restart to Update";', `MenuUpdateStep["RestartToUpdate"] = ${'"Reiniciar para atualizar"'};`);
     if (out !== updaterContent) {
-        console.log(`[修改] 更新弹窗汉化注入成功！`);
+        console.log(`[patch] Tradução da janela de atualização injetada com sucesso!`);
     } else {
-        console.warn(`[警告] 未能在 updater.js 中找到更新弹窗插入点。`);
+        console.warn(`[aviso] Ponto de inserção da janela de atualização não encontrado em updater.js.`);
     }
     return out;
 }
 
 const MAIN_PROCESS_TEXT_TABLES = {
     'dist/main.js': [
-        ["buttons: ['Cancel', 'Quit'],", "buttons: ['取消', '退出'],"],
-        ["title: 'Confirm Quit',", "title: '确认退出',"],
-        ["message: 'Are you sure you want to quit?',", "message: '确定要退出吗？',"],
+        ["buttons: ['Cancel', 'Quit'],", "buttons: ['Cancelar', 'Sair'],"],
+        ["title: 'Confirm Quit',", "title: 'Confirmar saída',"],
+        ["message: 'Are you sure you want to quit?',", "message: 'Tem certeza de que deseja sair?',"],
         [
             "detail: 'There may be agents or background tasks running.',",
-            "detail: '当前可能有智能体或后台任务正在运行。',"
+            "detail: 'Pode haver agentes ou tarefas em segundo plano em execução.',"
         ],
-        ["label: 'New Window',", "label: '新建窗口',"],
-        ["showErrorBox('Binary not found', msg)", "showErrorBox('未找到可执行文件', msg)"],
-        ["showErrorBox('WSL setup failed', msg)", "showErrorBox('WSL 初始化失败', msg)"],
-        ["showErrorBox('Startup failed', msg)", "showErrorBox('启动失败', msg)"],
-        ["title: 'WSL distro not found',", "title: '未找到 WSL 发行版',"],
+        ["label: 'New Window',", "label: 'Nova janela',"],
+        ["showErrorBox('Binary not found', msg)", "showErrorBox('Executável não encontrado', msg)"],
+        ["showErrorBox('WSL setup failed', msg)", "showErrorBox('Falha na configuração do WSL', msg)"],
+        ["showErrorBox('Startup failed', msg)", "showErrorBox('Falha na inicialização', msg)"],
+        ["title: 'WSL distro not found',", "title: 'Distribuição WSL não encontrada',"],
         [
             'message: `The WSL distro "${WSL_DISTRO}" is no longer installed.`,',
-            'message: `WSL 发行版 "${WSL_DISTRO}" 已不再安装。`,'
+            'message: `A distribuição WSL "${WSL_DISTRO}" não está mais instalada.`,'
         ],
         [
             "detail: 'Antigravity opened on Windows instead.',",
-            "detail: 'Antigravity 已改为在 Windows 上打开。',"
+            "detail: 'O Antigravity foi aberto no Windows.',"
         ],
         [
             '`Failed to install the server into WSL distro "${WSL_DISTRO}":\\n${err.message}`',
-            '`无法将服务器安装到 WSL 发行版“${WSL_DISTRO}”：\\n${err.message}`'
+            '`Não foi possível instalar o servidor na distribuição WSL "${WSL_DISTRO}":\\n${err.message}`'
         ]
     ],
     'dist/ipcHandlers.js': [
         [
             "showErrorBox('Cannot open folder', t.error)",
-            "showErrorBox('无法打开文件夹', t.error)"
+            "showErrorBox('Não foi possível abrir a pasta', t.error)"
         ],
         [
             "message: 'Folder is on the Windows filesystem',",
-            "message: '文件夹位于 Windows 文件系统中',"
+            "message: 'A pasta está no sistema de arquivos do Windows',"
         ],
-        ["title: 'Open workspace',", "title: '打开工作区',"],
-        ["title: 'Open workspaces',", "title: '打开工作区',"],
-        ["title: 'Select Download Folder',", "title: '选择下载文件夹',"]
+        ["title: 'Open workspace',", "title: 'Abrir espaço de trabalho',"],
+        ["title: 'Open workspaces',", "title: 'Abrir espaços de trabalho',"],
+        ["title: 'Select Download Folder',", "title: 'Selecionar pasta de download',"]
     ],
     'dist/remote/remoteManager.js': [
-        ["title: 'Choose an SSH config file',", "title: '选择 SSH 配置文件',"],
-        ["buttons: ['Stop Server', 'Cancel'],", "buttons: ['停止服务', '取消'],"],
-        ["title: 'Stop SSH server',", "title: '停止 SSH 服务器',"],
+        ["title: 'Choose an SSH config file',", "title: 'Escolher um arquivo de configuração SSH',"],
+        ["buttons: ['Stop Server', 'Cancel'],", "buttons: ['Parar servidor', 'Cancelar'],"],
+        ["title: 'Stop SSH server',", "title: 'Parar servidor SSH',"],
         [
             "message: `Stop the Antigravity server on ${entry.label}?`,",
-            "message: `停止 ${entry.label} 上的 Antigravity 服务？`,"
+            "message: `Parar o servidor do Antigravity em ${entry.label}?`,"
         ],
         [
             "'Agents running on this host will stop and its window will close. '",
-            "'此主机上运行的智能体将停止，其窗口也将关闭。'"
+            "'Os agentes em execução neste host serão interrompidos e a janela dele será fechada. '"
         ],
-        ["'The server starts again the next time you connect.'", "'下次连接时将重新启动服务。'"],
-        ["message: `Not connected to ${label}`,", "message: `尚未连接到 ${label}`,"],
+        ["'The server starts again the next time you connect.'", "'O servidor é iniciado novamente na próxima conexão.'"],
+        ["message: `Not connected to ${label}`,", "message: `Não conectado a ${label}`,"],
         [
             "detail: 'Reconnect first, then stop its server.',",
-            "detail: '请先重新连接，然后再停止其服务。',"
+            "detail: 'Reconecte primeiro e depois pare o servidor.',"
         ],
-        ["title: 'SSH connection failed',", "title: 'SSH 连接失败',"],
-        ["buttons: ['Sign In', 'Cancel'],", "buttons: ['登录', '取消'],"],
-        ["title: 'Sign in',", "title: '登录',"],
+        ["title: 'SSH connection failed',", "title: 'Falha na conexão SSH',"],
+        ["buttons: ['Sign In', 'Cancel'],", "buttons: ['Entrar', 'Cancelar'],"],
+        ["title: 'Sign in',", "title: 'Entrar',"],
         [
             "message: `Sign in to your organization for ${entry.label}?`,",
-            "message: `是否登录 ${entry.label} 所在的组织？`,"
+            "message: `Entrar na sua organização para ${entry.label}?`,"
         ],
         [
             "'Continue only if you just chose to sign in with your organization '",
-            "'仅当您刚才主动选择通过组织登录时才继续。'"
+            "'Continue somente se você acabou de escolher entrar com sua organização '"
         ],
         [
             "`in this window. ${entry.label} will get access to your `",
-            "`继续后，${entry.label} 将获得访问权限，可访问您的`"
+            "`nesta janela. ${entry.label} terá acesso à `"
         ],
         [
             '"organization\'s Google Cloud account.\\n"',
-            '"所属组织的 Google Cloud 账户。\\n"'
+            '"conta do Google Cloud da sua organização.\\n"'
         ],
         [
             "`Workforce pool: ${names[1]}  Provider: ${names[2]}`",
-            "`Workforce 池：${names[1]}  提供方：${names[2]}`"
+            "`Pool de Workforce: ${names[1]}  Provedor: ${names[2]}`"
         ],
-        ["`Identity provider: ${provider}`", "`身份提供方：${provider}`"],
+        ["`Identity provider: ${provider}`", "`Provedor de identidade: ${provider}`"],
         [
             "message: `${name} can't be the SSH config file`,",
-            "message: `${name} 无法作为 SSH 配置文件`,"
+            "message: `${name} não pode ser o arquivo de configuração SSH`,"
         ],
-        ["title: 'Choose another SSH config file',", "title: '选择其他 SSH 配置文件',"],
+        ["title: 'Choose another SSH config file',", "title: 'Escolher outro arquivo de configuração SSH',"],
         [
             "buttons: ['Choose Another File…', 'Cancel'],",
-            "buttons: ['选择其他文件…', '取消'],"
+            "buttons: ['Escolher outro arquivo…', 'Cancelar'],"
         ],
-        ["title: 'Could not restart the SSH server',", "title: '无法重启 SSH 服务器',"],
+        ["title: 'Could not restart the SSH server',", "title: 'Não foi possível reiniciar o servidor SSH',"],
         [
             "message: `${entry.label} still runs Antigravity server ${running}.`,",
-            "message: `${entry.label} 仍在运行 Antigravity 服务器 ${running}。`,"
+            "message: `${entry.label} ainda executa o servidor do Antigravity ${running}.`,"
         ],
-        ["buttons: ['Allow', \"Don't Allow\"],", "buttons: ['允许', '不允许'],"],
-        ["title: 'Microphone access',", "title: '麦克风权限',"],
+        ["buttons: ['Allow', \"Don't Allow\"],", "buttons: ['Permitir', 'Não permitir'],"],
+        ["title: 'Microphone access',", "title: 'Acesso ao microfone',"],
         [
             "message: `Allow ${label} to use your microphone?`,",
-            "message: `允许 ${label} 使用您的麦克风吗？`,"
+            "message: `Permitir que ${label} use seu microfone?`,"
         ],
         [
             "detail: `The page in this window comes from ${label}. If you allow it, that ` +",
-            "detail: `此窗口中的页面来自 ${label}。如果您允许，只要其任意` +"
+            "detail: `A página desta janela vem de ${label}. Se você permitir, esse ` +"
         ],
         [
             "\"host can use this computer's microphone for voice whenever one of \" +",
-            "\"主机窗口处于打开状态，该主机即可使用此电脑的麦克风进行语音输入。\" +"
+            "\"host poderá usar o microfone deste computador para voz sempre que uma \" +"
         ],
         [
             "'its windows is open. Antigravity asks again after you quit it.',",
-            "'退出 Antigravity 后，下次将重新询问。',"
+            "'de suas janelas estiver aberta. O Antigravity pergunta de novo depois que você sair dele.',"
         ],
-        ["buttons: ['Continue', 'Cancel'],", "buttons: ['继续', '取消'],"],
+        ["buttons: ['Continue', 'Cancel'],", "buttons: ['Continuar', 'Cancelar'],"],
         [
             "message: `Finish this sign-in on ${entry.label}?`,",
-            "message: `要在 ${entry.label} 上完成此次登录吗？`,"
+            "message: `Concluir este login em ${entry.label}?`,"
         ],
         [
             "detail: `Continue only if you just chose to sign in from the ${entry.label} ` +",
-            "detail: `仅当您刚才主动选择从 ${entry.label} 窗口登录时才继续。` +"
+            "detail: `Continue somente se você acabou de escolher entrar pela janela de ${entry.label}. ` +"
         ],
         [
             "'window. Your browser opens the sign-in page; once you sign in, ' +",
-            "'您的浏览器将打开登录页面；完成登录后，' +"
+            "'Seu navegador abre a página de login; depois que você entrar, ' +"
         ],
         [
             "`${entry.label} gets access to that account.\\n` +",
-            "`${entry.label} 将获得该账户的访问权限。\\n` +"
+            "`${entry.label} terá acesso a essa conta.\\n` +"
         ],
         [
             "`Sign-in page: ${(0, types_1.sanitizeRemoteText)(new URL(origin).host, 200)}`,",
-            "`登录页面：${(0, types_1.sanitizeRemoteText)(new URL(origin).host, 200)}`,"
+            "`Página de login: ${(0, types_1.sanitizeRemoteText)(new URL(origin).host, 200)}`,"
         ],
-        ["buttons: ['Take Over', 'Cancel'],", "buttons: ['接管', '取消'],"],
-        ["title: 'Shared home directory',", "title: '共享主目录',"],
+        ["buttons: ['Take Over', 'Cancel'],", "buttons: ['Assumir', 'Cancelar'],"],
+        ["title: 'Shared home directory',", "title: 'Diretório pessoal compartilhado',"],
         [
             "? `This window's Antigravity server runs on ${host}, another machine that shares your home directory.`",
-            "? `此窗口的 Antigravity 服务器正在 ${host} 上运行（另一台共享您主目录的机器）。`"
+            "? `O servidor do Antigravity desta janela está em execução em ${host}, outra máquina que compartilha seu diretório pessoal.`"
         ],
         [
             "? `Your Antigravity server runs on ${host}, another machine that shares your home directory.`",
-            "? `您的 Antigravity 服务器正在 ${host} 上运行（另一台共享您主目录的机器）。`"
+            "? `Seu servidor do Antigravity está em execução em ${host}, outra máquina que compartilha seu diretório pessoal.`"
         ],
         [
             ": `${host}, another machine that shares your home directory, started your Antigravity server.`,",
-            ": `${host}（另一台共享您主目录的机器）启动了您的 Antigravity 服务器。`,"
+            ": `${host}, outra máquina que compartilha seu diretório pessoal, iniciou seu servidor do Antigravity.`,"
         ],
         [
             "? `${label} reached ${here} this time. Cancel and reconnect to try again for ${host}, or take over to stop the server on ${host}, and its agents, and run it on ${here} instead.`",
-            "? `${label} 本次连接到了 ${here}。您可以取消并重新连接以再次尝试连接 ${host}，或选择“接管”以停止 ${host} 上的服务器及其智能体，改为在 ${here} 上运行。`"
+            "? `Desta vez, ${label} se conectou a ${here}. Cancele e reconecte para tentar novamente em ${host}, ou assuma o controle para parar o servidor em ${host}, e seus agentes, e executá-lo em ${here}.`"
         ],
         [
             "? `${label} reached ${here}. Take over to stop the server on ${host}, and its agents, and run it on ${here} instead. To keep it running, connect to ${host}.`",
-            "? `${label} 已连接到 ${here}。选择“接管”将停止 ${host} 上的服务器及其智能体，改为在 ${here} 上运行。若需保持其运行，请连接到 ${host}。`"
+            "? `${label} se conectou a ${here}. Assuma o controle para parar o servidor em ${host}, e seus agentes, e executá-lo em ${here}. Para mantê-lo em execução, conecte-se a ${host}.`"
         ],
         [
             ": `${label} reached ${here}. Take over only if that server no longer runs, for example if ${host} was shut down or replaced: if it still runs, both servers would write the same files. To check, connect to ${host}.`,",
-            ": `${label} 已连接到 ${here}。仅在确认该服务器已停止运行（例如 ${host} 已关机或被替换）时才选择“接管”：若它仍在运行，两个服务器将同时写入同一批文件。如需确认，请连接到 ${host}。`,"
+            ": `${label} se conectou a ${here}. Assuma o controle somente se esse servidor não estiver mais em execução, por exemplo se ${host} foi desligado ou substituído: se ele ainda estiver em execução, os dois servidores gravariam os mesmos arquivos. Para conferir, conecte-se a ${host}.`,"
         ],
         [
             "const what = terminals === 0 ? 'agent or task' : 'agent, task or terminal';",
-            "const what = terminals === 0 ? '智能体或任务' : '智能体、任务或终端';"
+            "const what = terminals === 0 ? 'agente ou tarefa' : 'agente, tarefa ou terminal';"
         ],
-        ["buttons: ['Restart', 'Later'],", "buttons: ['重启', '稍后'],"],
-        ["title: 'Restart SSH server',", "title: '重启 SSH 服务器',"],
+        ["buttons: ['Restart', 'Later'],", "buttons: ['Reiniciar', 'Mais tarde'],"],
+        ["title: 'Restart SSH server',", "title: 'Reiniciar servidor SSH',"],
         [
             "message: `${label} is running server ${running}; this app is ${expected}. Restart the server now?`,",
-            "message: `${label} 正在运行服务器 ${running}，当前应用版本为 ${expected}。是否立即重启服务器？`,"
+            "message: `${label} está executando o servidor ${running}; este app está na versão ${expected}. Reiniciar o servidor agora?`,"
         ],
         [
             "detail: `Any ${what} still running on it stops. The server starts again with this app's version.`,",
-            "detail: `其上仍在运行的任何${what}都将停止。服务器将以当前应用版本重新启动。`,"
+            "detail: `Qualquer ${what} ainda em execução nele será interrompido. O servidor é iniciado novamente com a versão deste app.`,"
         ],
-        // reportError() 以参数传入的对话框标题（须排在上面的 title 列之后）
-        ["'Could not restart the SSH server'", "'无法重启 SSH 服务器'"],
-        ["'Could not stop the SSH server'", "'无法停止 SSH 服务器'"],
-        ["'Sign-in failed'", "'登录失败'"],
-        ["'Connection cancelled.'", "'连接已取消。'"]
+        // Títulos de diálogo passados como argumento de reportError() (devem vir depois das linhas de title acima)
+        ["'Could not restart the SSH server'", "'Não foi possível reiniciar o servidor SSH'"],
+        ["'Could not stop the SSH server'", "'Não foi possível parar o servidor SSH'"],
+        ["'Sign-in failed'", "'Falha no login'"],
+        ["'Connection cancelled.'", "'Conexão cancelada.'"]
     ],
     'dist/remote/sshPrompts.js': [
-        // 页面语系只在繁体模式改为 zh-TW；简体模式保持原样（由上游决定）
-        ['<html lang="en"', '<html lang="en"'],
+        // O idioma da página só muda para zh-TW no modo tradicional; aqui vira pt-BR
+        ['<html lang="en"', '<html lang="pt-BR"'],
         [
             "message: confirm ? `${label} asks:` : 'Touch your security key',",
-            "message: confirm ? `${label} 询问：` : '请轻触您的安全密钥',"
+            "message: confirm ? `${label} pergunta:` : 'Toque na sua chave de segurança',"
         ],
         [
             "const TOUCH_TITLE = 'Touch your security key';",
-            "const TOUCH_TITLE = '请轻触您的安全密钥';"
+            "const TOUCH_TITLE = 'Toque na sua chave de segurança';"
         ],
         [
             "<p class=\"context\">Connecting to <span id=\"label\"></span></p>",
-            "<p class=\"context\">正在连接到 <span id=\"label\"></span></p>"
+            "<p class=\"context\">Conectando a <span id=\"label\"></span></p>"
         ],
         [
             "buttons: confirm ? ['Yes', 'No'] : ['Cancel'],",
-            "buttons: confirm ? ['是', '否'] : ['取消'],"
+            "buttons: confirm ? ['Sim', 'Não'] : ['Cancelar'],"
         ],
         [
             ">Asked again: your last answer may not have worked.<",
-            ">再次询问：您上次的回答可能未生效。<"
+            ">Perguntando de novo: sua última resposta pode não ter funcionado.<"
         ],
-        [">That's too long.<", ">输入内容过长。<"],
-        ['>Cancel</button>', '>取消</button>'],
-        ['>Continue</button>', '>继续</button>'],
+        [">That's too long.<", ">O texto é longo demais.<"],
+        ['>Cancel</button>', '>Cancelar</button>'],
+        ['>Continue</button>', '>Continuar</button>'],
         [
             "(who) => (isAccount(who) ? ['Password', who] : undefined),",
-            "(who) => (isAccount(who) ? ['密码', who] : undefined),"
+            "(who) => (isAccount(who) ? ['Senha', who] : undefined),"
         ],
         [
             "(who) => (isAccount(who) ? ['Current password', who] : undefined),",
-            "(who) => (isAccount(who) ? ['当前密码', who] : undefined),"
+            "(who) => (isAccount(who) ? ['Senha atual', who] : undefined),"
         ],
         [
             "(who) => (isAccount(who) ? ['New password', who] : undefined),",
-            "(who) => (isAccount(who) ? ['新密码', who] : undefined),"
+            "(who) => (isAccount(who) ? ['Nova senha', who] : undefined),"
         ],
         [
             "(who) => (isAccount(who) ? ['Confirm new password', who] : undefined),",
-            "(who) => (isAccount(who) ? ['确认新密码', who] : undefined),"
+            "(who) => (isAccount(who) ? ['Confirmar nova senha', who] : undefined),"
         ],
-        ["['Passphrase', baseName(key)]", "['密钥口令', baseName(key)]"],
+        ["['Passphrase', baseName(key)]", "['Frase secreta', baseName(key)]"],
         [
             "? `${asked[0]} for ${hostPromptsMarked ? asked[1] : label}`",
-            "? `${hostPromptsMarked ? asked[1] : label} 的${asked[0]}`"
+            "? `${asked[0]} de ${hostPromptsMarked ? asked[1] : label}`"
         ],
         [
             "? `Trust ${hostName(host.split(' (')[0])}?`",
-            "? `信任 ${hostName(host.split(' (')[0])}？`"
+            "? `Confiar em ${hostName(host.split(' (')[0])}?`"
         ],
-        ["? `Connect to ${hostName(host)} anyway?`", "? `仍要连接到 ${hostName(host)}？`"],
-        ["return 'Accept updated host keys?';", "return '接受更新的主机密钥？';"],
+        ["? `Connect to ${hostName(host)} anyway?`", "? `Conectar a ${hostName(host)} mesmo assim?`"],
+        ["return 'Accept updated host keys?';", "return 'Aceitar as chaves de host atualizadas?';"],
         [
             "return key ? `Add ${baseName(key.split(' (')[0])} to ssh-agent?` : undefined;",
-            "return key ? `将 ${baseName(key.split(' (')[0])} 添加到 ssh-agent？` : undefined;"
+            "return key ? `Adicionar ${baseName(key.split(' (')[0])} ao ssh-agent?` : undefined;"
         ],
-        ["return `Question from ${who}`;", "return `来自 ${who} 的询问`;"],
-        ["return `Verification code for ${who}`;", "return `${who} 的验证码`;"],
-        ["return `Password for ${who}`;", "return `${who} 的密码`;"],
+        ["return `Question from ${who}`;", "return `Pergunta de ${who}`;"],
+        ["return `Verification code for ${who}`;", "return `Código de verificação de ${who}`;"],
+        ["return `Password for ${who}`;", "return `Senha de ${who}`;"],
         [
             "return /\\bpin\\b/i.test(text) ? `PIN for ${who}` : `Sign in to ${who}`;",
-            "return /\\bpin\\b/i.test(text) ? `${who} 的 PIN` : `登录到 ${who}`;"
+            "return /\\bpin\\b/i.test(text) ? `PIN de ${who}` : `Entrar em ${who}`;"
         ]
     ],
     'dist/deviceChooser.js': [
-        ["hid: 'HID device',", "hid: 'HID 设备',"],
-        ["usb: 'USB device',", "usb: 'USB 设备',"],
-        ["serial: 'serial port',", "serial: '串口设备',"],
-        ["'Unknown device'", "'未知设备'"],
-        ["title: 'Connect a device',", "title: '连接设备',"],
+        ["hid: 'HID device',", "hid: 'dispositivo HID',"],
+        ["usb: 'USB device',", "usb: 'dispositivo USB',"],
+        ["serial: 'serial port',", "serial: 'dispositivo serial',"],
+        ["'Unknown device'", "'Dispositivo desconhecido'"],
+        ["title: 'Connect a device',", "title: 'Conectar um dispositivo',"],
         [
             "message: `${origin} wants to connect to a ${KIND_NOUNS[kind]}`,",
-            "message: `${origin} 请求连接到 ${KIND_NOUNS[kind]}`,"
+            "message: `${origin} quer se conectar a um ${KIND_NOUNS[kind]}`,"
         ],
-        ["? 'Select a device:'", "? '请选择设备：'"],
-        [": 'No compatible devices found.',", ": '未找到兼容设备。',"],
+        ["? 'Select a device:'", "? 'Selecione um dispositivo:'"],
+        [": 'No compatible devices found.',", ": 'Nenhum dispositivo compatível encontrado.',"],
         [
             "buttons: [...snapshot.map(({ label }) => label), 'Cancel'],",
-            "buttons: [...snapshot.map(({ label }) => label), '取消'],"
+            "buttons: [...snapshot.map(({ label }) => label), 'Cancelar'],"
         ]
     ],
     'dist/webauthn.js': [
         [
             "details.relyingPartyId || 'this site'",
-            "details.relyingPartyId || '当前站点'"
+            "details.relyingPartyId || 'este site'"
         ],
-        ["title: 'Choose a Passkey',", "title: '选择通行密钥 (Passkey)',"],
-        ["message: `Sign in to ${rpLabel}`,", "message: `登录 ${rpLabel}`,"],
+        ["title: 'Choose a Passkey',", "title: 'Escolher uma chave de acesso',"],
+        ["message: `Sign in to ${rpLabel}`,", "message: `Entrar em ${rpLabel}`,"],
         [
             "detail: 'Select a passkey account to continue:',",
-            "detail: '请选择一个通行密钥账户以继续：',"
+            "detail: 'Selecione uma conta de chave de acesso para continuar:',"
         ],
         [
             "buttons: [...accountLabels, 'Cancel'],",
-            "buttons: [...accountLabels, '取消'],"
+            "buttons: [...accountLabels, 'Cancelar'],"
         ]
     ],
     'dist/webviewPopupSecurity.js': [
-        ["insecure: 'Not secure',", "insecure: '不安全',"],
-        ["dangerous: '⚠ Not secure',", "dangerous: '⚠ 不安全',"],
-        ["'Your connection to this site is not secure',", "'您与此网站的连接不安全',"],
+        ["insecure: 'Not secure',", "insecure: 'Não seguro',"],
+        ["dangerous: '⚠ Not secure',", "dangerous: '⚠ Não seguro',"],
+        ["'Your connection to this site is not secure',", "'Sua conexão com este site não é segura',"],
         [
             "'You should not enter any sensitive information on this site (for '",
-            "'请勿在此网站输入任何敏感信息（例如'"
+            "'Você não deve inserir informações sensíveis neste site (por '"
         ],
         [
             "'example, passwords or credit cards), because it could be stolen by '",
-            "'密码或信用卡信息），因为这些信息可能会被'"
+            "'exemplo, senhas ou cartões de crédito), pois elas podem ser roubadas por '"
         ],
-        ["'attackers.',", "'攻击者窃取。',"],
-        ["'Connection is secure',", "'连接安全',"],
+        ["'attackers.',", "'invasores.',"],
+        ["'Connection is secure',", "'A conexão é segura',"],
         [
             "'Your information (for example, passwords or credit card numbers) is '",
-            "'您的信息（例如密码或信用卡号）在发送至此网站时'"
+            "'Suas informações (por exemplo, senhas ou números de cartão de crédito) são '"
         ],
-        ["'private when it is sent to this site.',", "'会受到私密保护。',"],
+        ["'private when it is sent to this site.',", "'privadas quando enviadas a este site.',"],
         [
             "['Connection security information is not available for this page']",
-            "['无法获取此页面的连接安全信息']"
+            "['As informações de segurança da conexão não estão disponíveis para esta página']"
         ],
-        [": 'unknown'", ": '未知'"],
-        ["'Certificate is valid' : 'Certificate details'", "'证书有效' : '证书详情'"],
-        ["`Error: ${state.certificateError}`", "`错误：${state.certificateError}`"],
+        [": 'unknown'", ": 'desconhecido'"],
+        ["'Certificate is valid' : 'Certificate details'", "'O certificado é válido' : 'Detalhes do certificado'"],
+        ["`Error: ${state.certificateError}`", "`Erro: ${state.certificateError}`"],
         [
             "`Issued to: ${certificate.subjectName}`",
-            "`颁发给：${certificate.subjectName}`"
+            "`Emitido para: ${certificate.subjectName}`"
         ],
-        ["`Issued by: ${certificate.issuer}`", "`颁发者：${certificate.issuer}`"],
+        ["`Issued by: ${certificate.issuer}`", "`Emitido por: ${certificate.issuer}`"],
         [
             "`Valid from: ${formatDate(certificate.validFromMs)}`",
-            "`生效时间：${formatDate(certificate.validFromMs)}`"
+            "`Válido de: ${formatDate(certificate.validFromMs)}`"
         ],
         [
             "`Valid until: ${formatDate(certificate.validToMs)}`",
-            "`过期时间：${formatDate(certificate.validToMs)}`"
+            "`Válido até: ${formatDate(certificate.validToMs)}`"
         ],
-        ["`Protocol: ${certificate.protocol}`", "`协议：${certificate.protocol}`"],
-        ["(state.url || 'This page')", "(state.url || '当前页面')"],
-        ["label: 'Connection info…',", "label: '连接信息…',"],
-        ["title: 'Connection info',", "title: '连接信息',"],
-        ["buttons: ['OK'],", "buttons: ['确定'],"]
+        ["`Protocol: ${certificate.protocol}`", "`Protocolo: ${certificate.protocol}`"],
+        ["(state.url || 'This page')", "(state.url || 'Esta página')"],
+        ["label: 'Connection info…',", "label: 'Informações da conexão…',"],
+        ["title: 'Connection info',", "title: 'Informações da conexão',"],
+        ["buttons: ['OK'],", "buttons: ['OK'],"]
     ],
     'dist/provisionSplash.js': [
         [
             "<div>Setting up WSL: ${escapeHtml(distro)}</div>",
-            "<div>正在初始化 WSL：${escapeHtml(distro)}</div>"
+            "<div>Configurando o WSL: ${escapeHtml(distro)}</div>"
         ]
     ],
     'dist/ideInstall/wizardHtml.js': [
-        // 页面语系只在繁体模式改为 zh-TW；简体模式保持原样（由上游决定）
-        ['<html lang="en"', '<html lang="en"'],
-        ["<title>Welcome to Antigravity</title>", "<title>欢迎使用 Antigravity</title>"],
-        [">Setting up…</div>", ">正在设置…</div>"],
-        ["<h1>Welcome to the new Antigravity!</h1>", "<h1>欢迎使用全新 Antigravity！</h1>"],
+        // O idioma da página só muda para zh-TW no modo tradicional; aqui vira pt-BR
+        ['<html lang="en"', '<html lang="pt-BR"'],
+        ["<title>Welcome to Antigravity</title>", "<title>Boas-vindas ao Antigravity</title>"],
+        [">Setting up…</div>", ">Configurando…</div>"],
+        ["<h1>Welcome to the new Antigravity!</h1>", "<h1>Boas-vindas ao novo Antigravity!</h1>"],
         [
             "<p>Antigravity has been redesigned to put agents first with new capabilities. If you'd still like a code editor, you can download it as a separate app named <b>Antigravity IDE</b>.</p>",
-            "<p>Antigravity 经过全新设计，以智能体为核心并带来了全新能力。如果您仍需要代码编辑器，可将其作为名为 <b>Antigravity IDE</b> 的独立应用下载。</p>"
+            "<p>O Antigravity foi redesenhado para colocar os agentes em primeiro lugar, com novos recursos. Se você ainda quiser um editor de código, pode baixá-lo como um app separado chamado <b>Antigravity IDE</b>.</p>"
         ],
         [
             "<span>Download the Antigravity IDE</span>",
-            "<span>下载 Antigravity IDE</span>"
+            "<span>Baixar o Antigravity IDE</span>"
         ],
-        [">Explore the new Antigravity</button>", ">探索全新 Antigravity</button>"]
+        [">Explore the new Antigravity</button>", ">Explorar o novo Antigravity</button>"]
     ],
     'dist/remote/disconnectedPage.js': [
-        // 页面语系只在繁体模式改为 zh-TW；简体模式保持原样（由上游决定）
-        ['<html lang="en"', '<html lang="en"'],
-        ["reconnect: 'Reconnect',", "reconnect: '重新连接',"],
-        ["stop: 'Stop Server',", "stop: '停止服务',"],
-        ["close: 'Close',", "close: '关闭',"],
-        ["? 'Restarting…'", "? '正在重启…'"],
-        ["? 'Reconnecting…'", "? '正在重新连接…'"],
-        [": 'Disconnected';", ": '已断开连接';"],
+        // O idioma da página só muda para zh-TW no modo tradicional; aqui vira pt-BR
+        ['<html lang="en"', '<html lang="pt-BR"'],
+        ["reconnect: 'Reconnect',", "reconnect: 'Reconectar',"],
+        ["stop: 'Stop Server',", "stop: 'Parar servidor',"],
+        ["close: 'Close',", "close: 'Fechar',"],
+        ["? 'Restarting…'", "? 'Reiniciando…'"],
+        ["? 'Reconnecting…'", "? 'Reconectando…'"],
+        [": 'Disconnected';", ": 'Desconectado';"],
         [
             "? `Restarting the Antigravity server on ${host}…`",
-            "? `正在重启 ${host} 上的 Antigravity 服务…`"
+            "? `Reiniciando o servidor do Antigravity em ${host}…`"
         ],
-        ["? `Reconnecting to ${host}…`", "? `正在重新连接到 ${host}…`"],
-        [": `Disconnected from ${host}`;", ": `已断开与 ${host} 的连接`;"],
+        ["? `Reconnecting to ${host}…`", "? `Reconectando a ${host}…`"],
+        [": `Disconnected from ${host}`;", ": `Desconectado de ${host}`;"],
         [
             "? 'This window opens it again once it has started.'",
-            "? '服务启动完成后，此窗口将自动重新打开。'"
+            "? 'Esta janela será aberta novamente quando o servidor for iniciado.'"
         ],
         [
             "? `Its server on ${host} stopped, and its agents with it.`",
-            "? `其在 ${host} 上的服务已停止，相关的智能体也已随之停止。`"
+            "? `O servidor em ${host} foi parado, e seus agentes junto com ele.`"
         ],
-        [": `Agents keep running on ${host}.`", ": `智能体仍在 ${host} 上继续运行。`"],
-        ["? `Its agents on ${host} stopped with it.`", "? `其在 ${host} 上的智能体已随之停止。`"],
+        [": `Agents keep running on ${host}.`", ": `Os agentes continuam em execução em ${host}.`"],
+        ["? `Its agents on ${host} stopped with it.`", "? `Os agentes em ${host} foram parados junto com ele.`"],
         [
             ": `Agents keep running on ${host} unless its server stopped.`;",
-            ": `除非其服务已停止，否则智能体仍在 ${host} 上继续运行。`;"
+            ": `Os agentes continuam em execução em ${host}, a menos que o servidor tenha sido parado.`;"
         ]
     ],
     'dist/remote/signInCallback.js': [
-        // 页面语系只在繁体模式改为 zh-TW；简体模式保持原样（由上游决定）
-        ['<html lang="en"', '<html lang="en"'],
+        // O idioma da página só muda para zh-TW no modo tradicional; aqui vira pt-BR
+        ['<html lang="en"', '<html lang="pt-BR"'],
         [
             "const SIGNED_IN = page('You have successfully authenticated.', 'You can close this tab and return to Antigravity.');",
-            "const SIGNED_IN = page('您已成功完成身份验证。', '您可以关闭此标签页并返回 Antigravity。');"
+            "const SIGNED_IN = page('Você foi autenticado com sucesso.', 'Você pode fechar esta aba e voltar ao Antigravity.');"
         ],
         [
             "return page(\"Sign-in didn't finish\", `Antigravity couldn't reach ${host} to finish signing in. ` +",
-            "return page('登录未完成', `Antigravity 无法连接到 ${host} 以完成登录。` +"
+            "return page('O login não foi concluído', `O Antigravity não conseguiu alcançar ${host} para concluir o login. ` +"
         ],
         [
             "return page(\"Sign-in didn't finish\", 'This sign-in came back from another server than the sign-in page you ' +",
-            "return page('登录未完成', '此登录回调来自与您此前同意的登录页不同的服务器，' +"
+            "return page('O login não foi concluído', 'Este login voltou de um servidor diferente da página de login que você ' +"
         ],
         [
             "`agreed to, so Antigravity didn't pass it on to ${host}.`);",
-            "`因此 Antigravity 未将其传递给 ${host}。`);"
+            "`aceitou, por isso o Antigravity não o repassou para ${host}.`);"
         ],
         [
             "return page(\"Sign-in didn't finish\", `Antigravity on ${host} couldn't finish signing in (HTTP ${status}). ` +",
-            "return page('登录未完成', `${host} 上的 Antigravity 无法完成登录 (HTTP ${status})。` +"
+            "return page('O login não foi concluído', `O Antigravity em ${host} não conseguiu concluir o login (HTTP ${status}). ` +"
         ],
-        ["'Sign in again from Antigravity.');", "'请从 Antigravity 重新发起登录。');"]
+        ["'Sign in again from Antigravity.');", "'Entre novamente pelo Antigravity.');"]
     ],
     'dist/browserStream/capturePage.js': [
-        ["<title>Browser Stream Capture</title>", "<title>浏览器串流捕获</title>"],
-        ["'Capture session failed'", "'捕获会话失败'"]
+        ["<title>Browser Stream Capture</title>", "<title>Captura de transmissão do navegador</title>"],
+        ["'Capture session failed'", "'Falha na sessão de captura'"]
     ],
-    // v2.35.1：SSH 错误对话框的说明与详情栏标签
+    // v2.35.1: texto de explicação e rótulos da área de detalhes do diálogo de erro SSH
     'dist/remote/sshErrorText.js': [
-        ["'The connection was closed before it finished.'", "'连接在完成前被关闭。'"],
+        ["'The connection was closed before it finished.'", "'A conexão foi fechada antes de terminar.'"],
         [
             "`Windows SSH hosts aren't supported yet. ${sshArgs_1.LINUX_HOST_NEEDED}`",
-            "`暂不支持 Windows SSH 主机。${sshArgs_1.LINUX_HOST_NEEDED}`"
+            "`Hosts SSH com Windows ainda não são compatíveis. ${sshArgs_1.LINUX_HOST_NEEDED}`"
         ],
         [
             "`Error code: ${err.code}\\nLogs: ${logPath()}`",
-            "`错误代码：${err.code}\\n日志：${logPath()}`"
+            "`Código do erro: ${err.code}\\nLogs: ${logPath()}`"
         ],
-        ["`${text}\\nLogs: ${logPath()}`", "`${text}\\n日志：${logPath()}`"],
-        ["`${label} reported: ${text}`", "`${label} 报告：${text}`"]
+        ["`${text}\\nLogs: ${logPath()}`", "`${text}\\nLogs: ${logPath()}`"],
+        ["`${label} reported: ${text}`", "`${label} informou: ${text}`"]
     ],
-    // 通行密钥扫码窗口
+    // Janela de leitura de QR code da chave de acesso
     'dist/cablev2.js': [
-        // 页面语系只在繁体模式改为 zh-TW；简体模式保持原样（由上游决定）
-        ["<html lang=\"en\">", "<html lang=\"en\">"],
-        ["<title>Passkeys</title>", "<title>通行密钥</title>"],
+        // O idioma da página só muda para zh-TW no modo tradicional; aqui vira pt-BR
+        ["<html lang=\"en\">", "<html lang=\"pt-BR\">"],
+        ["<title>Passkeys</title>", "<title>Chaves de acesso</title>"],
         [
             "<h1 class=\"sheet-title\">Passkeys</h1>",
-            "<h1 class=\"sheet-title\">通行密钥</h1>"
+            "<h1 class=\"sheet-title\">Chaves de acesso</h1>"
         ],
         [
             "<p class=\"mechanism-header\">Use your phone or tablet</p>",
-            "<p class=\"mechanism-header\">使用手机或平板电脑</p>"
+            "<p class=\"mechanism-header\">Use seu celular ou tablet</p>"
         ],
         [
             ">Scan this QR code with the camera on the device that has your passkey for ${safeRpId}</p>",
-            ">请使用存有 ${safeRpId} 通行密钥的设备，用摄像头扫描此二维码</p>"
+            ">Escaneie este QR code com a câmera do dispositivo que tem sua chave de acesso para ${safeRpId}</p>"
         ],
         [
             "onclick=\"window.close()\">Cancel</button>",
-            "onclick=\"window.close()\">取消</button>"
+            "onclick=\"window.close()\">Cancelar</button>"
         ],
-        ["title: 'Passkeys'", "title: '通行密钥'"],
-        ["updateStatus('Connecting to your device…')", "updateStatus('正在连接到您的设备…')"],
+        ["title: 'Passkeys'", "title: 'Chaves de acesso'"],
+        ["updateStatus('Connecting to your device…')", "updateStatus('Conectando ao seu dispositivo…')"],
         [
             "updateStatus('Verify on your device to continue…')",
-            "updateStatus('请在您的设备上完成验证以继续…')"
+            "updateStatus('Verifique no seu dispositivo para continuar…')"
         ]
     ],
     'dist/qrEncoder.js': [
-        ["aria-label=\"Passkey QR code\"", "aria-label=\"通行密钥二维码\""]
+        ["aria-label=\"Passkey QR code\"", "aria-label=\"QR code da chave de acesso\""]
     ],
-    // SSH 连接失败对话框与断开页面的错误说明（给 AI 代理的错误码消息、只写入日志的字符串保留英文）
+    // Mensagens de erro da caixa de falha de conexão SSH e da página de desconexão (códigos de erro para agentes de IA e textos só de log permanecem em inglês)
+
     'dist/remote/sshArgs.js': [
         [
             "'Antigravity needs a Linux host on x64 or arm64 with glibc 2.26 or newer.'",
-            "'Antigravity 需要使用 glibc 2.26 或更高版本、x64 或 arm64 架构的 Linux 主机。'"
+            "'O Antigravity precisa de um host Linux x64 ou arm64 com glibc 2.26 ou mais recente.'"
         ],
         [
             "`Couldn't connect to the SSH host (${String(code)}).`",
-            "`无法连接到 SSH 主机（${String(code)}）。`"
+            "`Não foi possível conectar ao host SSH (${String(code)}).`"
         ],
         [
             "'SSH authentication failed. Check your password, code or keys, then try again.'",
-            "'SSH 身份验证失败。请检查密码、验证码或密钥，然后重试。'"
+            "'Falha na autenticação SSH. Verifique sua senha, código ou chaves e tente novamente.'"
         ],
         [
             "'SSH authentication failed. Click Reconnect to sign in again.'",
-            "'SSH 身份验证失败。请点击“重新连接”再次登录。'"
+            "'Falha na autenticação SSH. Clique em \"Reconectar\" para entrar novamente.'"
         ],
         [
             "\"SSH authentication failed. Antigravity can't answer password or code prompts on Windows yet: set up key-based login with ssh-agent, then try again.\"",
-            "'SSH 身份验证失败。Antigravity 目前在 Windows 上还无法应答密码或验证码提示：请用 ssh-agent 设置密钥登录，然后重试。'"
+            "'Falha na autenticação SSH. O Antigravity ainda não consegue responder a prompts de senha ou código no Windows: configure o login por chave com ssh-agent e tente novamente.'"
         ],
         [
             "\"That SSH host isn't valid. Enter an alias from your SSH config or a host like user@host or user@host:2222.\"",
-            "'该 SSH 主机无效。请输入 SSH 配置中的别名，或 user@host、user@host:2222 这类主机。'"
+            "'Este host SSH não é válido. Informe um alias da sua configuração SSH ou um host como user@host ou user@host:2222.'"
         ],
         [
             "\"The host's SSH key is unknown or has changed. Save it with ssh in a terminal. If it changed, ask the host's owner first: the connection may be intercepted.\"",
-            "'主机的 SSH 密钥未知或已更改。请在终端中用 ssh 保存该密钥。如果密钥已更改，请先询问主机所有者：连接可能已被拦截。'"
+            "'A chave SSH do host é desconhecida ou mudou. Salve-a com ssh em um terminal. Se mudou, consulte primeiro o responsável pelo host: a conexão pode estar sendo interceptada.'"
         ],
         [
             "\"The host's SSH key has changed or isn't trusted. If it changed, ask the host's owner first: the connection may be intercepted.\"",
-            "'主机的 SSH 密钥已更改或不受信任。如果密钥已更改，请先询问主机所有者：连接可能已被拦截。'"
+            "'A chave SSH do host mudou ou não é confiável. Se mudou, consulte primeiro o responsável pelo host: a conexão pode estar sendo interceptada.'"
         ],
         [
             "`Couldn't connect to the SSH host. Check its name, your network and ssh config (e.g. a ProxyCommand), and that ssh to it works in a terminal${prompts === 'no' ? ' without a prompt' : ''}.`",
-            "`无法连接到 SSH 主机。请检查主机名、网络和 ssh 配置（例如 ProxyCommand），并确认在终端中${prompts === 'no' ? '无需任何提示即可' : '可以'}用 ssh 连接到该主机。`"
+            "`Não foi possível conectar ao host SSH. Verifique o nome do host, sua rede e a configuração do ssh (por exemplo, um ProxyCommand) e confirme que o ssh para ele funciona em um terminal${prompts === 'no' ? ' sem nenhum prompt' : ''}.`"
         ],
         [
             "\"SSH can't use your SSH config file. Fix the problem ssh reports, or choose another config file.\"",
-            "'SSH 无法使用您的 SSH 配置文件。请修复 ssh 报告的问题，或选择其他配置文件。'"
+            "'O SSH não consegue usar seu arquivo de configuração SSH. Corrija o problema informado pelo ssh ou escolha outro arquivo de configuração.'"
         ],
         [
             "'SSH port forwarding failed. Make sure the server allows TCP forwarding (AllowTcpForwarding) for your account, then try again.'",
-            "'SSH 端口转发失败。请确认服务器允许您的账户使用 TCP 转发（AllowTcpForwarding），然后重试。'"
+            "'Falha no encaminhamento de portas SSH. Confirme que o servidor permite encaminhamento TCP (AllowTcpForwarding) para sua conta e tente novamente.'"
         ],
         [
             "`The SSH host isn't supported. ${exports.LINUX_HOST_NEEDED} Windows and macOS hosts aren't supported yet.`",
-            "`不支持该 SSH 主机。${exports.LINUX_HOST_NEEDED}目前尚不支持 Windows 和 macOS 主机。`"
+            "`Este host SSH não é compatível. ${exports.LINUX_HOST_NEEDED} Hosts Windows e macOS ainda não são compatíveis.`"
         ],
         [
             "'Another host that shares your home directory runs the Antigravity server. Connect to that host, or connect again and choose Take Over.'",
-            "'另一台共享您主目录的主机正在运行 Antigravity 服务器。请连接到那台主机，或重新连接并选择“接管”。'"
+            "'Outro host que compartilha seu diretório pessoal está executando o servidor do Antigravity. Conecte-se a esse host ou conecte novamente e escolha \"Assumir\".'"
         ],
         [
             "\"Couldn't install the Antigravity server on the SSH host. Make sure it has free disk space, and that it or this computer can download from the internet.\"",
-            "'无法在 SSH 主机上安装 Antigravity 服务器。请确认主机有可用的磁盘空间，并且主机或这台电脑能从互联网下载。'"
+            "'Não foi possível instalar o servidor do Antigravity no host SSH. Confirme que há espaço livre em disco e que o host ou este computador consegue baixar da internet.'"
         ],
         [
             "`The Antigravity server failed to start on the SSH host. See its log in ~/${types_1.REMOTE_INSTALL_ROOT}/data on that host.`",
-            "`Antigravity 服务器无法在 SSH 主机上启动。请查看该主机 ~/${types_1.REMOTE_INSTALL_ROOT}/data 中的日志。`"
+            "`O servidor do Antigravity falhou ao iniciar no host SSH. Veja o log em ~/${types_1.REMOTE_INSTALL_ROOT}/data nesse host.`"
         ],
         [
             "'The Antigravity server on the SSH host stopped. Reconnect to start it again.'",
-            "'SSH 主机上的 Antigravity 服务器已停止。请重新连接以再次启动。'"
+            "'O servidor do Antigravity no host SSH foi interrompido. Reconecte para iniciá-lo novamente.'"
         ],
         [
             "'The SSH connection closed. Check your network connection, then reconnect.'",
-            "'SSH 连接已关闭。请检查网络连接，然后重新连接。'"
+            "'A conexão SSH foi encerrada. Verifique sua conexão de rede e reconecte.'"
         ],
-        ["'The connection was cancelled.'", "'连接已取消。'"],
+        ["'The connection was cancelled.'", "'A conexão foi cancelada.'"],
         [
             "\"Couldn't connect to the SSH host. Try ssh to it in a terminal, and see the Antigravity log for details.\"",
-            "'无法连接到 SSH 主机。请在终端中尝试用 ssh 连接，并查看 Antigravity 日志了解详情。'"
+            "'Não foi possível conectar ao host SSH. Tente usar o ssh para ele em um terminal e consulte o log do Antigravity para ver os detalhes.'"
         ]
     ],
-    // 连接画面的进度状态与对话框显示的错误消息
+    // Mensagens de progresso da tela de conexão e erros exibidos nas caixas de diálogo
     'dist/remote/sshConnection.js': [
-        ["`Connecting to ${this.label}…`", "`正在连接到 ${this.label}…`"],
-        ["'Waiting for your answer…'", "'正在等待您的回答…'"],
+        ["`Connecting to ${this.label}…`", "`Conectando a ${this.label}…`"],
+        ["'Waiting for your answer…'", "'Aguardando sua resposta…'"],
         [
             "`Uploading the Antigravity server to ${this.label}…`",
-            "`正在将 Antigravity 服务器上传到 ${this.label}…`"
+            "`Enviando o servidor do Antigravity para ${this.label}…`"
         ],
         [
             "`Connecting to the Antigravity server on ${this.label}…`",
-            "`正在连接 ${this.label} 上的 Antigravity 服务器…`"
+            "`Conectando ao servidor do Antigravity em ${this.label}…`"
         ],
-        ["`Checking ${label}…`", "`正在检查 ${label}…`"],
+        ["`Checking ${label}…`", "`Verificando ${label}…`"],
         [
             "`Waiting for another window to finish installing on ${label}…`",
-            "`正在等待另一个窗口在 ${label} 上完成安装…`"
+            "`Aguardando outra janela terminar a instalação em ${label}…`"
         ],
         [
             "`Replacing an invalid server binary on ${label}…`",
-            "`正在替换 ${label} 上无效的服务器程序…`"
+            "`Substituindo um binário de servidor inválido em ${label}…`"
         ],
         [
             "`Downloading the Antigravity server on ${label}…`",
-            "`正在 ${label} 上下载 Antigravity 服务器…`"
+            "`Baixando o servidor do Antigravity em ${label}…`"
         ],
         [
             "`Installed the Antigravity server on ${label}.`",
-            "`已在 ${label} 上安装 Antigravity 服务器。`"
+            "`Servidor do Antigravity instalado em ${label}.`"
         ],
         [
             "`Starting the Antigravity server on ${label}…`",
-            "`正在 ${label} 上启动 Antigravity 服务器…`"
+            "`Iniciando o servidor do Antigravity em ${label}…`"
         ],
         [
             "`Connecting to the running server on ${label}…`",
-            "`正在连接 ${label} 上运行中的服务器…`"
+            "`Conectando ao servidor em execução em ${label}…`"
         ],
         [
             "`Restarting the Antigravity server on ${label}…`",
-            "`正在重启 ${label} 上的 Antigravity 服务器…`"
+            "`Reiniciando o servidor do Antigravity em ${label}…`"
         ],
         [
             "`Checking whether another host still runs your Antigravity server…`",
-            "`正在检查是否还有其他主机在运行您的 Antigravity 服务器…`"
+            "`Verificando se outro host ainda executa seu servidor do Antigravity…`"
         ],
         [
             "`Moving the Antigravity server to ${label}…`",
-            "`正在将 Antigravity 服务器移至 ${label}…`"
+            "`Movendo o servidor do Antigravity para ${label}…`"
         ],
-        ["`Timed out connecting to ${this.label}.`", "`连接 ${this.label} 超时。`"],
-        ["'Connection cancelled.'", "'连接已取消。'"],
-        ["'Not connected.'", "'未连接。'"],
+        ["`Timed out connecting to ${this.label}.`", "`Tempo esgotado ao conectar a ${this.label}.`"],
+        ["'Connection cancelled.'", "'Conexão cancelada.'"],
+        ["'Not connected.'", "'Não conectado.'"],
         [
             "exports.PROMPT_CANCELLED = 'Sign-in cancelled.';",
-            "exports.PROMPT_CANCELLED = '已取消登录。';"
+            "exports.PROMPT_CANCELLED = 'Login cancelado.';"
         ],
         [
             "`The Antigravity server on ${this.label} has no HTTP port to stop it through.`",
-            "`${this.label} 上的 Antigravity 服务器没有可用于停止它的 HTTP 端口。`"
+            "`O servidor do Antigravity em ${this.label} não tem porta HTTP para ser parado.`"
         ],
         [
             "`The Antigravity server on ${this.label} refused to stop (HTTP ${status}).`",
-            "`${this.label} 上的 Antigravity 服务器拒绝停止（HTTP ${status}）。`"
+            "`O servidor do Antigravity em ${this.label} recusou-se a parar (HTTP ${status}).`"
         ],
         [
             "`Could not confirm that the Antigravity server on ${this.label} stopped` +",
-            "`无法确认 ${this.label} 上的 Antigravity 服务器已停止` +"
+            "`Não foi possível confirmar que o servidor do Antigravity em ${this.label} foi parado` +"
         ],
         [
             "(rpcError ? ` (${this.redact((0, types_1.sanitizeRemoteText)(rpcError))}).` : '.')",
-            "(rpcError ? `（${this.redact((0, types_1.sanitizeRemoteText)(rpcError))}）。` : '。')"
+            "(rpcError ? ` (${this.redact((0, types_1.sanitizeRemoteText)(rpcError))}).` : '.')"
         ],
-        ["why = 'it has no HTTP port';", "why = '它没有 HTTP 端口';"],
-        ["why = 'an invalid answer';", "why = '响应无效';"],
+        ["why = 'it has no HTTP port';", "why = 'ele não tem porta HTTP';"],
+        ["why = 'an invalid answer';", "why = 'resposta inválida';"],
         [
             "`The Antigravity server on ${this.label} didn't give this window a sign-in token (${why}).`",
-            "`${this.label} 上的 Antigravity 服务器没有给此窗口登录令牌（${why}）。`"
+            "`O servidor do Antigravity em ${this.label} não deu um token de login a esta janela (${why}).`"
         ],
         [
             "`${this.label} did not start the setup within ${Math.round(firstLineMs / 1000)} s. ` +",
-            "`${this.label} 未在 ${Math.round(firstLineMs / 1000)} 秒内开始设置。` +"
+            "`${this.label} não iniciou a configuração em ${Math.round(firstLineMs / 1000)} s. ` +"
         ],
         [
             "'ssh (e.g. a ProxyCommand or ProxyJump login) or a command in ' +",
-            "'可能是 ssh（例如 ProxyCommand 或 ProxyJump 登录）或 ' +"
+            "'O ssh (por exemplo, um login com ProxyCommand ou ProxyJump) ou um comando em ' +"
         ],
         [
             "'your shell startup files (e.g. ~/.bashrc) may be waiting for input.'",
-            "'shell 启动文件（例如 ~/.bashrc）中的命令正在等待输入。'"
+            "'seus arquivos de inicialização do shell (por exemplo, ~/.bashrc) pode estar aguardando entrada.'"
         ],
-        ["\"Couldn't answer ssh's prompt.\"", "'无法应答 ssh 的提示。'"],
+        ["\"Couldn't answer ssh's prompt.\"", "'Não foi possível responder ao prompt do ssh.'"],
         [
             "`Could not run \"${sshBin}\". Install OpenSSH or set ANTIGRAVITY_SSH_BIN.`",
-            "`无法运行“${sshBin}”。请安装 OpenSSH 或设置 ANTIGRAVITY_SSH_BIN。`"
+            "`Não foi possível executar \"${sshBin}\". Instale o OpenSSH ou defina ANTIGRAVITY_SSH_BIN.`"
         ],
-        ["`Could not run ssh: ${err.message}`", "`无法运行 ssh：${err.message}`"],
+        ["`Could not run ssh: ${err.message}`", "`Não foi possível executar o ssh: ${err.message}`"],
         [
             "`ssh could not listen on its SOCKS port ${this.socksPort}.`",
-            "`ssh 无法监听其 SOCKS 端口 ${this.socksPort}。`"
+            "`O ssh não conseguiu escutar na porta SOCKS ${this.socksPort}.`"
         ],
         [
             "`${this.label} asked for an upload it can't need.`",
-            "`${this.label} 请求了不必要的上传。`"
+            "`${this.label} solicitou um envio que não deveria ser necessário.`"
         ],
         [
             "`${this.label} sent a line longer than ${MAX_LINE_CHARS} characters.`",
-            "`${this.label} 发送的单行超过 ${MAX_LINE_CHARS} 个字符。`"
+            "`${this.label} enviou uma linha com mais de ${MAX_LINE_CHARS} caracteres.`"
         ],
         [
             "`Neither ${this.label} nor this computer could download the Antigravity server: ${errorMessage(err)}`",
-            "`${this.label} 和这台电脑都无法下载 Antigravity 服务器：${errorMessage(err)}`"
+            "`Nem ${this.label} nem este computador conseguiram baixar o servidor do Antigravity: ${errorMessage(err)}`"
         ],
         [
             "`The Antigravity server on ${this.label} stopped.`",
-            "`${this.label} 上的 Antigravity 服务器已停止。`"
+            "`O servidor do Antigravity em ${this.label} parou.`"
         ],
         [
             "`The connection to ${this.label} was lost: ${describeExit(code, signal, this.stderrTail)}`",
-            "`与 ${this.label} 的连接已中断：${describeExit(code, signal, this.stderrTail)}`"
+            "`A conexão com ${this.label} foi perdida: ${describeExit(code, signal, this.stderrTail)}`"
         ],
         [
             "'The SSH server does not allow port forwarding (AllowTcpForwarding).'",
-            "'SSH 服务器不允许端口转发（AllowTcpForwarding）。'"
+            "'O servidor SSH não permite encaminhamento de portas (AllowTcpForwarding).'"
         ],
         [
             "`The Antigravity server on ${this.label} did not respond through the SSH tunnel (${(0, types_1.sanitizeRemoteText)(lastErr, 200)}).`",
-            "`${this.label} 上的 Antigravity 服务器未通过 SSH 隧道响应（${(0, types_1.sanitizeRemoteText)(lastErr, 200)}）。`"
+            "`O servidor do Antigravity em ${this.label} não respondeu pelo túnel SSH (${(0, types_1.sanitizeRemoteText)(lastErr, 200)}).`"
         ],
         [
             "`${this.label} asked to open a sign-in at ${origin} that can't finish on that host, so it was not opened.`",
-            "`${this.label} 要求打开 ${origin} 的登录，但该登录无法在那台主机上完成，因此未打开。`"
+            "`${this.label} pediu para abrir um login em ${origin} que não pode ser concluído nesse host, por isso ele não foi aberto.`"
         ],
         [
             "`The sign-in request of the Antigravity server on ${this.label} doesn't match what this app expects, so it was not opened. ` +",
-            "`${this.label} 上的 Antigravity 服务器发出的登录请求与此应用的预期不符，因此未打开。` +"
+            "`A solicitação de login do servidor do Antigravity em ${this.label} não corresponde ao que este app espera, por isso não foi aberta. ` +"
         ],
         [
             "'Update Antigravity, or restart the server on that host.'",
-            "'请更新 Antigravity，或重启那台主机上的服务器。'"
+            "'Atualize o Antigravity ou reinicie o servidor nesse host.'"
         ],
         [
             "`Local port ${port} is in use, so the sign-in callback can't ` +",
-            "`本地端口 ${port} 已被占用，登录回调无法` +"
+            "`A porta local ${port} está em uso, então o callback de login não consegue ` +"
         ],
         [
             "`reach ${this.label}. Close the program using it and sign in again. ` +",
-            "`到达 ${this.label}。请关闭占用该端口的程序，然后重新登录。` +"
+            "`alcançar ${this.label}. Feche o programa que a usa e entre novamente. ` +"
         ],
-        ["'The connection was closed.'", "'连接已关闭。'"],
-        ["'Could not get a free loopback port.'", "'无法取得可用的回环端口。'"],
+        ["'The connection was closed.'", "'A conexão foi fechada.'"],
+        ["'Could not get a free loopback port.'", "'Não foi possível obter uma porta de loopback livre.'"],
         [
             "const how = signal ? `signal ${signal}` : `exit code ${code}`;",
-            "const how = signal ? `信号 ${signal}` : `退出代码 ${code}`;"
+            "const how = signal ? `sinal ${signal}` : `código de saída ${code}`;"
         ],
         [
             "? `ssh exited (${how}): ${(0, types_1.sanitizeRemoteText)(lastLine, 300)}`",
-            "? `ssh 已退出（${how}）：${(0, types_1.sanitizeRemoteText)(lastLine, 300)}`"
+            "? `ssh encerrou (${how}): ${(0, types_1.sanitizeRemoteText)(lastLine, 300)}`"
         ],
-        [": `ssh exited (${how}).`", ": `ssh 已退出（${how}）。`"]
+        [": `ssh exited (${how}).`", ": `ssh encerrou (${how}).`"]
     ],
-    // SSH 主机输入框的格式校验
+    // Validação de formato do campo de host SSH
     'dist/remote/sshDestination.js': [
-        ["'The user name before \"@\" is missing.'", "'缺少“@”前面的用户名。'"],
-        ["'The user name must not start with \"-\".'", "'用户名不能以“-”开头。'"],
-        ["`\"${shown}\" isn't a valid user name.`", "`“${shown}”不是有效的用户名。`"],
-        ["'The host name is missing.'", "'缺少主机名。'"],
-        ["'The host name must not start with \"-\".'", "'主机名不能以“-”开头。'"],
-        ["`\"${host}\" isn't a valid host name.`", "`“${host}”不是有效的主机名。`"],
+        ["'The user name before \"@\" is missing.'", "'Falta o nome de usuário antes de \"@\".'"],
+        ["'The user name must not start with \"-\".'", "'O nome de usuário não pode começar com \"-\".'"],
+        ["`\"${shown}\" isn't a valid user name.`", "`\"${shown}\" não é um nome de usuário válido.`"],
+        ["'The host name is missing.'", "'Falta o nome do host.'"],
+        ["'The host name must not start with \"-\".'", "'O nome do host não pode começar com \"-\".'"],
+        ["`\"${host}\" isn't a valid host name.`", "`\"${host}\" não é um nome de host válido.`"],
         [
             "`Invalid port \"${port}\": use a number from 1 to 65535.`",
-            "`端口“${port}”无效：请使用 1 到 65535 之间的数字。`"
+            "`Porta \"${port}\" inválida: use um número de 1 a 65535.`"
         ],
         [
             "`\"${addr}\" isn't a valid IPv6 address. Write an IPv6 address with a port in brackets, for example [::1]:2222.`",
-            "`“${addr}”不是有效的 IPv6 地址。带端口的 IPv6 地址请用方括号括起，例如 [::1]:2222。`"
+            "`\"${addr}\" não é um endereço IPv6 válido. Escreva o endereço IPv6 com porta entre colchetes, por exemplo [::1]:2222.`"
         ],
         [
             "`Missing \"]\" after the IPv6 address in \"${hostPort}\".`",
-            "`“${hostPort}”中的 IPv6 地址后缺少“]”。`"
+            "`Falta \"]\" depois do endereço IPv6 em \"${hostPort}\".`"
         ],
         [
             "`Invalid percent-encoding in the user name \"${s}\".`",
-            "`用户名“${s}”中的百分号编码无效。`"
+            "`Codificação percentual inválida no nome de usuário \"${s}\".`"
         ],
         [
             "'Write \"@\" inside the user name of an ssh:// URI as %40.'",
-            "'ssh:// URI 的用户名中如有“@”，请写成 %40。'"
+            "'Em uma URI ssh://, escreva \"@\" dentro do nome de usuário como %40.'"
         ],
         [
             "'Write an IPv6 address in an ssh:// URI in brackets, for example ssh://[::1]:2222.'",
-            "'ssh:// URI 中的 IPv6 地址请用方括号括起，例如 ssh://[::1]:2222。'"
+            "'Em uma URI ssh://, escreva o endereço IPv6 entre colchetes, por exemplo ssh://[::1]:2222.'"
         ],
         [
             "'Enter an SSH host, for example \"devbox\" or \"user@host:2222\".'",
-            "'请输入 SSH 主机，例如“devbox”或“user@host:2222”。'"
+            "'Informe um host SSH, por exemplo \"devbox\" ou \"user@host:2222\".'"
         ],
         [
             "`The SSH host is too long (at most ${MAX_DESTINATION_LENGTH} characters).`",
-            "`SSH 主机过长（最多 ${MAX_DESTINATION_LENGTH} 个字符）。`"
+            "`O host SSH é longo demais (no máximo ${MAX_DESTINATION_LENGTH} caracteres).`"
         ],
-        ["'The SSH host must not start with \"-\".'", "'SSH 主机不能以“-”开头。'"],
+        ["'The SSH host must not start with \"-\".'", "'O host SSH não pode começar com \"-\".'"],
         [
             "'The SSH host must not contain spaces or control characters.'",
-            "'SSH 主机不能包含空格或控制字符。'"
+            "'O host SSH não pode conter espaços nem caracteres de controle.'"
         ],
         [
             "`The SSH host must not contain ${describeChar(bad[0])}.`",
-            "`SSH 主机不能包含 ${describeChar(bad[0])}。`"
+            "`O host SSH não pode conter ${describeChar(bad[0])}.`"
         ]
     ],
-    // SSH 配置文件检查结果（按中文语序改写句式）
+    // Resultado da verificação do arquivo de configuração SSH (frases reordenadas para o português)
     'dist/remote/sshConfigHosts.js': [
-        ["`The SSH config file ${problem}`", "`SSH 配置文件${problem}`"],
-        ["`${shown} isn't a file.`", "`（${shown}）不是文件。`"],
+        ["`The SSH config file ${problem}`", "`O arquivo de configuração do SSH ${problem}`"],
+        ["`${shown} isn't a file.`", "`${shown} não é um arquivo.`"],
         [
             "`${shown} can be changed by others: it must be yours or root's, and not group- or world-writable.`",
-            "`（${shown}）可被他人修改：它必须属于您或 root，且不能允许用户组或所有人写入。`"
+            "`${shown} pode ser alterado por outras pessoas: ele deve pertencer a você ou ao root e não pode permitir gravação para o grupo ou para todos.`"
         ],
         [
             "const NOT_CONFIG = \"isn't an SSH config file\";",
-            "const NOT_CONFIG = '不是 SSH 配置文件';"
+            "const NOT_CONFIG = 'não é um arquivo de configuração do SSH';"
         ],
         [
             "const CHOOSE_CONFIG = 'Choose a file of ssh settings, such as ~/.ssh/config.';",
-            "const CHOOSE_CONFIG = '请选择 ssh 配置文件，例如 ~/.ssh/config。';"
+            "const CHOOSE_CONFIG = 'Escolha um arquivo de configurações do ssh, como ~/.ssh/config.';"
         ],
         [
             "const UNREADABLE = \"is saved in a way ssh can't read\";",
-            "const UNREADABLE = '的保存格式 ssh 无法读取';"
+            "const UNREADABLE = 'foi salvo em um formato que o ssh não consegue ler';"
         ],
         [
             "const SAVE_AS_UTF8 = 'Save it as UTF-8 without a byte-order mark.';",
-            "const SAVE_AS_UTF8 = '请另存为不带字节顺序标记（BOM）的 UTF-8。';"
+            "const SAVE_AS_UTF8 = 'Salve-o como UTF-8 sem marca de ordem de bytes (BOM).';"
         ],
-        ["notConfig(\"it's a binary file\")", "notConfig('这是二进制文件')"],
-        ["notConfig('it holds a key or certificate')", "notConfig('其中包含密钥或证书')"],
+        ["notConfig(\"it's a binary file\")", "notConfig('é um arquivo binário')"],
+        ["notConfig('it holds a key or certificate')", "notConfig('contém uma chave ou um certificado')"],
         [
             "notConfig('it holds SSH public keys, like a .pub or authorized_keys file')",
-            "notConfig('其中包含 SSH 公钥，例如 .pub 或 authorized_keys 文件')"
+            "notConfig('contém chaves públicas SSH, como um arquivo .pub ou authorized_keys')"
         ],
         [
             "notConfig('it lists SSH host keys, like known_hosts')",
-            "notConfig('其中列出 SSH 主机密钥，例如 known_hosts')"
+            "notConfig('lista chaves de host SSH, como o known_hosts')"
         ],
-        ["why: 'it starts with a byte-order mark',", "why: '它以字节顺序标记（BOM）开头',"],
-        ["why: \"it's saved as UTF-16\",", "why: '它以 UTF-16 保存',"],
+        ["why: 'it starts with a byte-order mark',", "why: 'começa com uma marca de ordem de bytes (BOM)',"],
+        ["why: \"it's saved as UTF-16\",", "why: 'foi salvo em UTF-16',"],
         [
             "return `${file} ${what}: ${why}. ${fix}`;",
-            "return `${file} ${what}：${why}。${fix}`;"
+            "return `${file} ${what}: ${why}. ${fix}`;"
         ],
-        ["invalid('must be a path on one line.')", "invalid('必须是单行路径。')"],
-        ["`must be an absolute path (got ${shown}).`", "`必须是绝对路径（当前为 ${shown}）。`"],
+        ["invalid('must be a path on one line.')", "invalid('deve ser um caminho em uma única linha.')"],
+        ["`must be an absolute path (got ${shown}).`", "`deve ser um caminho absoluto (recebido: ${shown}).`"],
         [
             "`must be on one of this computer's drives (got ${shown}).`",
-            "`必须位于这台电脑的磁盘上（当前为 ${shown}）。`"
+            "`deve estar em uma das unidades deste computador (recebido: ${shown}).`"
         ],
-        ["`can't be on a network share (${shown}).`", "`不能位于网络共享上（${shown}）。`"],
-        ["`${shown} doesn't exist or can't be read.`", "`（${shown}）不存在或无法读取。`"],
+        ["`can't be on a network share (${shown}).`", "`não pode estar em um compartilhamento de rede (${shown}).`"],
+        ["`${shown} doesn't exist or can't be read.`", "`${shown} não existe ou não pode ser lido.`"],
         [
             "`${shown} is now a link: choose the file again.`",
-            "`（${shown}）现在是链接：请重新选择文件。`"
+            "`${shown} agora é um link: escolha o arquivo novamente.`"
         ],
-        ["`${shown} is over 4 MiB.`", "`（${shown}）超过 4 MiB。`"]
+        ["`${shown} is over 4 MiB.`", "`${shown} tem mais de 4 MiB.`"]
     ],
-    // 连接前的主机与配置文件路径检查
+    // Verificação do host e do caminho do arquivo de configuração antes de conectar
     'dist/remote/sshBridge.js': [
         [
             "'The SSH config file must be a path of at most 4 KiB.'",
-            "'SSH 配置文件路径最长 4 KiB。'"
+            "'O arquivo de configuração do SSH deve ser um caminho de no máximo 4 KiB.'"
         ],
         [
             "'Enter an SSH host, for example \"devbox\" or \"user@host\".'",
-            "'请输入 SSH 主机，例如“devbox”或“user@host”。'"
+            "'Informe um host SSH, por exemplo \"devbox\" ou \"user@host\".'"
         ]
     ],
-    // Windows：在 WSL 中打开文件夹时的提示
+    // Windows: avisos ao abrir pastas no WSL
     'dist/wsl.js': [
         [
             "`This folder belongs to the WSL distro \"${unc[1]}\", but this window is connected to \"${distro}\".`",
-            "`此文件夹属于 WSL 发行版“${unc[1]}”，但此窗口连接的是“${distro}”。`"
+            "`Esta pasta pertence à distribuição WSL \"${unc[1]}\", mas esta janela está conectada a \"${distro}\".`"
         ],
         [
             "'This folder is on the Windows filesystem. Accessing it from WSL (via /mnt) can be slow — for best performance keep projects inside the WSL filesystem.'",
-            "'此文件夹位于 Windows 文件系统中。从 WSL（通过 /mnt）访问可能较慢；为获得最佳性能，请将项目放在 WSL 文件系统中。'"
+            "'Esta pasta está no sistema de arquivos do Windows. Acessá-la pelo WSL (via /mnt) pode ser lento; para melhor desempenho, mantenha os projetos dentro do sistema de arquivos do WSL.'"
         ],
         [
             "`This location cannot be opened in WSL: ${winPath}`",
-            "`无法在 WSL 中打开此位置：${winPath}`"
+            "`Não é possível abrir este local no WSL: ${winPath}`"
         ]
     ]
 };
@@ -1367,7 +1368,7 @@ function patchMainProcessModule(relPath, content) {
         }
     }
     if (hitCount > 0) {
-        console.log(`[修改] 已向 ${relPath} 注入原生弹窗/界面汉化（${hitCount} 处）`);
+        console.log(`[modificação] Tradução de diálogos e interface nativos injetada em ${relPath} (${hitCount} ${hitCount === 1 ? 'ocorrência' : 'ocorrências'})`);
     }
     return out;
 }
