@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="assets/banner.jpg" alt="Antigravity 2 em português do Brasil" width="100%" />
+  <img src="assets/banner.jpg" alt="Antigravity 2.0 em português do Brasil" width="100%" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Node.js-%3E%3D22.22.2-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
-  <img src="https://img.shields.io/badge/Electron-ASAR%20Patcher-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron" />
-  <img src="https://img.shields.io/badge/Idioma-pt--BR-009C3B?style=for-the-badge" alt="pt-BR" />
-  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-blue?style=for-the-badge" alt="Licença MIT" />
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D22.22.2-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?style=flat-square&logo=javascript&logoColor=black" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/Electron-ASAR%20Patcher-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron" />
+  <img src="https://img.shields.io/badge/Idioma-pt--BR-009C3B?style=flat-square" alt="pt-BR" />
+  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-1A73E8?style=flat-square" alt="Licença MIT" />
 </p>
 
-# Antigravity 2 em português do Brasil
+# Antigravity 2.0 em português do Brasil
 
-Tradução da interface do Antigravity 2 (editor de código com agentes de IA, do Google) para português do Brasil. Um script em Node.js, sem dependências externas, aplica a tradução diretamente no `resources/app.asar` do aplicativo. Antes de alterar qualquer coisa, ele salva uma cópia do arquivo original (`app.asar.bak`) para que você possa restaurar o inglês quando quiser.
+Tradução da interface do Antigravity 2.0 (editor de código com agentes de IA, do Google) para português do Brasil. Um script em Node.js, sem dependências externas, aplica a tradução diretamente no `resources/app.asar` do aplicativo. Antes de alterar qualquer coisa, ele salva uma cópia do arquivo original (`app.asar.bak`) para que você possa restaurar o inglês quando quiser.
 
 > **Projeto comunitário e não oficial.** Sem vínculo com o Google. Esta é a adaptação pt-BR do [qqxpee/antigravity2-cn](https://github.com/qqxpee/antigravity2-cn), sem o recurso de proxy nem o suporte ao chinês tradicional do projeto original.
 
